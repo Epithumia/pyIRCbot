@@ -1,0 +1,4 @@
+pyIRCbot
+========
+
+Multipurpose IRC bot
