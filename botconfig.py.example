@@ -1,9 +1,10 @@
-PASS = "my_nickserv_pass"
+PASS = "my_auth_pass"
 CHANNEL = "#mywolfgame"
 HOST = "irc.freenode.net"
 PORT = 6667
 USERNAME = ""  # for authentication, can be left blank if same as NICK
 NICK = "mywolfbot"
+NICKPASS = "" #nickserv pass
 CMD_CHAR = "!"
 CHANGING_HOST_QUIT_MESSAGE = "Changing host"
 
@@ -22,18 +23,5 @@ ALLOW = {"cloakof/fwaiter": ("fwait",),
          "cloakof/?omeone_else": ("fday","fnight")}
 DENY = {}
 
-# Stop editing here
+DEFAULT_MODULE = "werewolf"
 
-# Argument --debug means start in debug mode
-#          --verbose means to print a lot of stuff (when not in debug mode)
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--debug', action='store_true')
-parser.add_argument('--sabotage', action='store_true')
-parser.add_argument('--verbose', action='store_true')
-
-args = parser.parse_args()
-DEBUG_MODE = args.debug if not DISABLE_DEBUG_MODE else False
-VERBOSE_MODE = args.verbose
-
-DEFAULT_MODULE = "sabotage" if args.sabotage else "wolfgame"

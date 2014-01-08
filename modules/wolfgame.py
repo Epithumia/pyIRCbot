@@ -10,7 +10,7 @@
 from oyoyo.parse import parse_nick
 import settings.wolfgame as var
 import botconfig
-from tools.wolfgamelogger import WolfgameLogger
+from tools.gamelogger import GameLogger
 from tools import decorators
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -71,7 +71,7 @@ var.DISCONNECTED = {}  # players who got disconnected
 
 var.illegal_joins = defaultdict(int)
 
-var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
+var.LOGGER = GameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 
 if botconfig.DEBUG_MODE:
     var.NIGHT_TIME_LIMIT = 0  # 90

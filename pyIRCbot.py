@@ -20,6 +20,7 @@
 from oyoyo.client import IRCClient
 import logging
 import botconfig
+import tools.parser
 import time
 import traceback
 import modules.common

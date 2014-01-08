@@ -99,7 +99,8 @@ hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 def connect_callback(cli):
 
     def prepare_stuff(*args):    
-        cli.ns_identify(botconfig.NICKPASS)
+        if botconfig.NICKPASS != "":
+            cli.ns_identify(botconfig.NICKPASS)
         cli.join(botconfig.CHANNEL)
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
         

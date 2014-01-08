@@ -48,6 +48,8 @@ GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE = 0
 GUARDIAN_ANGEL_DIES_CHANCE = 1/2
 DETECTIVE_REVEALED_CHANCE = 2/5
 
+CRAZY_COP_CHANCE = 1/2
+
 #################################################################################################################
 #   ROLE INDEX:   PLAYERS   SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   CROW    ANGEL DETECTIVE  ##
 #################################################################################################################
@@ -70,24 +72,24 @@ GAME_MODES = {}
 AWAY = []  # cloaks of people who are away.
 SIMPLE_NOTIFY = []  # cloaks of people who !simple, who want everything /notice'd
 
-ROLE_INDICES = {0 : "seer",
-                1 : "wolf",
+ROLE_INDICES = {0 : "cop",
+                1 : "mafia goon",
                 2 : "cursed villager",
-                3 : "village drunk",
-                4 : "harlot",
+                3 : "city hobo",
+                4 : "prostitute",
                 5 : "traitor",
                 6 : "gunner",
-                7 : "werecrow",
-                8 : "guardian angel",
+                7 : "mafia spy",
+                8 : "doctor",
                 9 : "detective"}
 
 INDEX_OF_ROLE = dict((v,k) for k,v in ROLE_INDICES.items())
 
 NO_VICTIMS_MESSAGES = ("The body of a young penguin pet is found.",
-                       "A pool of blood and wolf paw prints are found.",
-                       "Traces of wolf fur are found.")
-LYNCH_MESSAGES = ("The villagers, after much debate, finally decide on lynching \u0002{0}\u0002, who turned out to be... a \u0002{1}\u0002.",
-                  "Under a lot of noise, the pitchfork-bearing villagers lynch \u0002{0}\u0002, who turned out to be... a \u0002{1}\u0002.",
+                       "A pool of blood and skid marks are found.",
+                       "Empty bullet shells are found.")
+LYNCH_MESSAGES = ("The townies, after much debate, finally decide on lynching \u0002{0}\u0002, who turned out to be... a \u0002{1}\u0002.",
+                  "Under a lot of noise, the pitchfork-bearing townies lynch \u0002{0}\u0002, who turned out to be... a \u0002{1}\u0002.",
                   "The mob drags a protesting \u0002{0}\u0002 to the hanging tree. S/He succumbs to the will of the horde, and is hanged. It is discovered (s)he was a \u0002{1}\u0002.",
                   "Resigned to his/her fate, \u0002{0}\u0002 is led to the gallows. After death, it is discovered (s)he was a \u0002{1}\u0002.",
                   "As s/he is about to be lynched, \u0002{0}\u0002, the \u0002{1}\u0002, throws a grenade at the mob.  The grenade explodes early.")
@@ -110,7 +112,7 @@ PING_IN = []  # cloaks of users who have opted in for ping
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
 def plural(role):
-    if role == "wolf": return "wolves"
+    if role == "mafia goon": return "mafia goons"
     elif role == "person": return "people"
     else: return role + "s"
 
@@ -143,16 +145,15 @@ def game_mode(name):
         return c
     return decor
 
-
-CHANGEABLE_ROLES = { "seers"  : INDEX_OF_ROLE["seer"],
-                     "wolves" : INDEX_OF_ROLE["wolf"],
+CHANGEABLE_ROLES = { "cops"  : INDEX_OF_ROLE["cop"],
+                     "goons" : INDEX_OF_ROLE["mafia goon"],
                      "cursed" : INDEX_OF_ROLE["cursed villager"],
-                    "drunks"  : INDEX_OF_ROLE["village drunk"],
-                   "harlots"  : INDEX_OF_ROLE["harlot"],
+                    "hobos"  : INDEX_OF_ROLE["city hobo"],
+                   "prostitutes"  : INDEX_OF_ROLE["prostitute"],
                   "traitors"  : INDEX_OF_ROLE["traitor"],
                    "gunners"  : INDEX_OF_ROLE["gunner"],
-                 "werecrows"  : INDEX_OF_ROLE["werecrow"],
-                 "angels"     : INDEX_OF_ROLE["guardian angel"],
+                 "spies"  : INDEX_OF_ROLE["mafia spy"],
+                 "doctors"     : INDEX_OF_ROLE["doctor"],
                  "detectives" : INDEX_OF_ROLE["detective"]}
 
 
@@ -161,7 +162,7 @@ CHANGEABLE_ROLES = { "seers"  : INDEX_OF_ROLE["seer"],
 # TODO: implement game modes
 @game_mode("roles")
 class ChangedRolesMode(object):
-    """Example: !fgame roles=wolves:1,seers:0,angels:1"""
+    """Example: !fgame roles=goons:1,cops:0,doctors:1"""
 
     def __init__(self, arg):
         self.ROLES_GUIDE = ROLES_GUIDE.copy()
@@ -213,7 +214,7 @@ with conn:
     c.execute('DROP TABLE IF EXISTS roles')
     c.execute('CREATE TABLE roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT)')
 
-    for x in ["villager"]+list(ROLE_INDICES.values()):
+    for x in ["townie"]+list(ROLE_INDICES.values()):
         c.execute("INSERT OR REPLACE INTO roles (role) VALUES (?)", (x,))
 
 

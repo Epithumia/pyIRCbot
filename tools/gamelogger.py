@@ -1,7 +1,7 @@
 import botconfig
 from datetime import datetime
 
-class WolfgameLogger(object):
+class GameLogger(object):
 
     def __init__(self, outfile, boutfile):
         self.outfile = outfile
