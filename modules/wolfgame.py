@@ -1,4 +1,4 @@
-# Copyright (c) 2011, Jimmy Cao
+# Copyright (c) 2011, Jimmy Cao, (c) 2014, Rafael Lopez
 # All rights reserved.
 
 # Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
