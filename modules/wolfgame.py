@@ -2372,7 +2372,7 @@ def midnight(cli):
         pl.remove(witch)
         if witch in var.PLAYERS and var.PLAYERS[witch]["cloak"] not in var.SIMPLE_NOTIFY and (var.RED_POT or var.BLACK_POT):
             cli.msg(witch, ("You are a \u0002witch\u0002.\n"+
-                          "It is your job to determine all the wolves and traitors. "+
+                          "It is your job to help the villagers. "+
                           "Your job is during the night, and you can choose to save "+
                           "once the victim of the werewolves. Use heal <nick> to save the victim.\n"+
                           "You may also use a killing potion to kill any player once"+
@@ -2388,7 +2388,16 @@ def midnight(cli):
 
     # TODO: PM other roles
     for shaman in var.ROLES["shaman"]:
-
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(shaman)
+        if shaman in var.PLAYERS and var.PLAYERS[shaman]["cloak"] not in var.SIMPLE_NOTIFY:
+            cli.msg(shaman, ("You are a \u0002shaman\u0002.\n"+
+                          "You are part of the villagers. "+
+                          "Your job is during the night, and you can listen to "+
+                          "what dead people have to say during the night.")
+        else:
+            cli.notice(shaman, "You are a \02shaman\02.")  # !simple
 	
     # Sisters
 	ps = var.list_players()
