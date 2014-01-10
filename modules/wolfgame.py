@@ -2160,7 +2160,7 @@ def transition_night(cli):
 
     if var.NIGHT_TIME_LIMIT > 0:
         var.NIGHT_ID = time.time()
-        t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.NIGHT_ID])
+        t = threading.Timer(var.NIGHT_TIME_LIMIT, midnight, [cli, var.NIGHT_ID])
         var.TIMERS["night"] = t
         var.TIMERS["night"].daemon = True
         t.start()
@@ -2265,7 +2265,28 @@ def transition_night(cli):
         pm(cli, dttv, "Players: " + ", ".join(pl))
 
     # TODO: PM other roles
+    for littlegirl in var.ROLES["little girl"]:
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(littlegirl)
+        if littlegirl in var.PLAYERS and var.PLAYERS[littlegirl]["cloak"] not in var.SIMPLE_NOTIFY:
+            cli.msg(littlegirl, ('You are a \u0002little girl\u0002. '+
+                             'You may peek once per night to try to spot a werewolf. '+
+                             'If you successfully spot a wolf, you may be caught and eaten.\n'+
+                             'Use peek to try to peek at the wolves.'))
+        else:
+            cli.notice(littlegirl, "You are a \02little girl\02.")  # !simple
 
+    for angel in var.ROLES["angel"]:
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(angel)
+        if angel in var.PLAYERS and var.PLAYERS[angel]["cloak"] not in var.SIMPLE_NOTIFY:
+            cli.msg(angel, ('You are an \u0002angel\u0002. '+
+                              'Your goal is to be the first person lynched.'+
+                              'If you succeed, you win alone. Otherwise, you become a villager.'))
+        else:
+            cli.notice(angel, "You are an \02angel\02.")  # !simple
 
     for d in var.ROLES["village drunk"]:
         if var.FIRST_NIGHT:
@@ -2445,7 +2466,7 @@ def midnight(cli):
                    "relax, and wait patiently for morning.")
     cli.msg(chan, dmsg)
     var.LOGGER.logMessage(dmsg.replace("\02", ""))
-    var.LOGGER.logBare("NIGHT", "BEGIN")
+    var.LOGGER.logBare("MIDNIGHT", "BEGIN")
 
     # cli.msg(chan, "DEBUG: "+str(var.ROLES))
     if not var.ROLES["wolf"] + var.ROLES["werecrow"]:  # Probably something interesting going on.
