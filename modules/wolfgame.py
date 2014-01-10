@@ -1277,6 +1277,7 @@ def begin_day(cli):
     var.HVISITED = {}
     var.GUARDED = {}
 
+    # Message at the start of the day
     msg = ("The villagers must now vote for whom to lynch. "+
            'Use "{0}lynch <nick>" to cast your vote. {1} votes '+
            'are required to lynch.').format(botconfig.CMD_CHAR, len(var.list_players()) // 2 + 1)
@@ -1301,6 +1302,7 @@ def night_warn(cli, gameid):
     if var.PHASE == "day":
         return
         
+    # Message to warn that the night is almost over
     cli.msg(botconfig.CHANNEL, ("\02A few villagers awake early and notice it " +
                                 "is still dark outside. " +
                                 "The night is almost over and there are " +
@@ -1361,7 +1363,12 @@ def transition_day(cli, gameid=0):
         if dups:
             dups.append(victim)
             victim = random.choice(dups)
+
+    # TODO: Piper's effect
+
+    # TODO: white wolf effect
     
+    # Generic message at dawn
     message = [("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
                "The villagers awake, thankful for surviving the night, "+
                "and search the village... ").format(min, sec)]
@@ -1369,6 +1376,8 @@ def transition_day(cli, gameid=0):
     crowonly = var.ROLES["werecrow"] and not var.ROLES["wolf"]
     if victim:
         var.LOGGER.logBare(victim, "WOLVESVICTIM", *[y for x,y in var.KILLS.items() if x == victim])
+
+    # First, deal with the werecrow if there was one
     for crow, target in iter(var.OBSERVED.items()):
         if ((target in list(var.HVISITED.keys()) and var.HVISITED[target]) or  # if var.HVISITED[target] is None, harlot visited self
             target in var.SEEN+list(var.GUARDED.keys())):
@@ -1377,10 +1386,16 @@ def transition_day(cli, gameid=0):
         else:
             pm(cli, crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
                           "all night long, and you fly back to your house.").format(target))
+
+    # Deal with the guardian angel effect
+    # TODO: bodyguard will be here
     if victim in var.GUARDED.values():
         message.append(("\u0002{0}\u0002 was attacked by the wolves last night, but luckily, the "+
                         "guardian angel protected him/her.").format(victim))
         victim = ""
+    # TODO: Deal with witch protect effect
+
+    # No victim
     elif not victim:
         message.append(random.choice(var.NO_VICTIMS_MESSAGES) +
                     " All villagers, however, have survived.")
@@ -1395,6 +1410,7 @@ def transition_day(cli, gameid=0):
                         "death.").format(victim, var.get_role(victim)))
         dead.append(victim)
         var.LOGGER.logBare(victim, "KILLED")
+    # Gunner was killed
     if victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
         if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
             wc = var.ROLES["werecrow"]
@@ -1407,6 +1423,9 @@ def transition_day(cli, gameid=0):
                             "\02{1}\02, a \02{2}\02, was shot dead.").format(victim, deadwolf, var.get_role(deadwolf)))
             var.LOGGER.logBare(deadwolf, "KILLEDBYGUNNER")
             dead.append(deadwolf)
+    # TODO: add Hunter
+
+    # Harlot side effects
     if victim in var.HVISITED.values():  #  victim was visited by some harlot
         for hlt in var.HVISITED.keys():
             if var.HVISITED[hlt] == victim:
@@ -1420,6 +1439,7 @@ def transition_day(cli, gameid=0):
                             "visiting a wolf's house last night and is "+
                             "now dead.").format(harlot))
             dead.append(harlot)
+    # Guardian angel protected a wolf/werecrow
     for gangel in var.ROLES["guardian angel"]:
         if var.GUARDED.get(gangel) in var.ROLES["wolf"]+var.ROLES["werecrow"]:
             if victim == gangel:
@@ -1439,6 +1459,7 @@ def transition_day(cli, gameid=0):
         if not del_player(cli, deadperson):
             return
     
+    # Gunner's death: chance to get the weapon
     if (var.WOLF_STEALS_GUN and victim in dead and 
         victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0):
         # victim has bullets
@@ -1463,6 +1484,7 @@ def transition_day(cli, gameid=0):
 
 
 def chk_nightdone(cli):
+    # TODO: check that CUPID shot the lovers
     if (len(var.SEEN) == len(var.ROLES["seer"]) and  # Seers have seen.
         len(var.HVISITED.keys()) == len(var.ROLES["harlot"]) and  # harlots have visited.
         len(var.GUARDED.keys()) == len(var.ROLES["guardian angel"]) and  # guardians have guarded
@@ -2208,6 +2230,10 @@ def transition_night(cli):
         else:
             cli.notice(dttv, "You are a \02detective\02.")  # !simple
         pm(cli, dttv, "Players: " + ", ".join(pl))
+
+    # TODO: PM other roles
+
+
     for d in var.ROLES["village drunk"]:
         if var.FIRST_NIGHT:
             pm(cli, d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')

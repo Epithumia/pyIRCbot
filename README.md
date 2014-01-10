@@ -5,10 +5,7 @@ Multipurpose IRC bot
 
 
 TODO: 
-    more flexible configuration:
-        - IRC/network in one place
-        - module to load chosen from command line
-        - options for the module get default from file, can be modified dynamically by owner/admin
+    more flexible configuration: options for the module get default from file, can be modified dynamically by owner/admin
 
     mafia module:
         - implement actual mafiascum roles

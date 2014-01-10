@@ -1,3 +1,7 @@
+############################
+# General options/settings #
+############################
+
 PING_WAIT = 300  # Seconds
 PING_MIN_WAIT = 30 # How long !start has to wait after a !ping
 MINIMUM_WAIT = 60
@@ -6,9 +10,8 @@ MAXIMUM_WAITED = 3  # limit for amount of !wait's
 STATS_RATE_LIMIT = 15
 VOTES_RATE_LIMIT = 15
 ADMINS_RATE_LIMIT = 300
-SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
-MAX_PLAYERS = 30
-DRUNK_SHOTS_MULTIPLIER = 3
+MAX_PLAYERS = 40
+
 NIGHT_TIME_LIMIT = 120
 NIGHT_TIME_WARN = 90  # should be less than NIGHT_TIME_LIMIT
 DAY_TIME_LIMIT_WARN = 600
@@ -39,29 +42,50 @@ KILL_BOLD = False
 LOG_FILENAME = "game.log"
 BARE_LOG_FILENAME = "barelog.log"
 
-                    #       HIT    MISS    SUICIDE
-GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
-DRUNK_GUN_CHANCES   =   (   2/7  ,  4/7  ,   1/7   )
-MANSLAUGHTER_CHANCE =       1/5  # ACCIDENTAL HEADSHOT (FATAL)
 
-GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE = 0
-GUARDIAN_ANGEL_DIES_CHANCE = 1/2
-DETECTIVE_REVEALED_CHANCE = 2/5
+
+
+
+
 
 #################################################################################################################
-#   ROLE INDEX:   PLAYERS   SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   CROW    ANGEL DETECTIVE  ##
+# ROLE INDEX: PLAYERS SEER|WOLF|CURSED|DRUNK|HARLOT|TRAITOR|GUNNER|CROW|GUARD|DETECTIVE                        ##
+#                     WITCH|CUPID|THIEF|GIRL|HUNTER|ANCIENT|SHAMAN|IDIOT|SCAPGOAT|PIPER                        ##
+#                     WWOLF|CROW|KID|ANGEL|FATHER|BBW|SISTER                                                   ##
 #################################################################################################################
-ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0    ,   0   ,   0   ), ##
-                   6    : (   1   ,   1   ,   1   ,   1   ,   0   ,    0   ,   0   ,   0    ,   0   ,   0   ), ##
-                   8    : (   1   ,   2   ,   1   ,   1   ,   1   ,    0   ,   0   ,   0    ,   0   ,   0   ), ##
-                   10   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   0    ,   0   ,   0   ), ##
-                   12   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   0   ,   1   ), ##
-                   15   : (   1   ,   3   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   0   ,   1   ), ##
-                   17   : (   1   ,   3   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   1   ,   1   ), ##
-                   22   : (   1   ,   4   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   1   ,   1   ), ##
-                   25   : (   1   ,   4   ,   2   ,   1   ,   1   ,    1   ,   1   ,   1    ,   1   ,   1   ), ##
-                   29   : (   1   ,   5   ,   2   ,   1   ,   1   ,    1   ,   1   ,   1    ,   1   ,   1   ), ##
-                   None : (   0   ,   0   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0    ,   0   ,   0   )} ##
+ROLES_GUIDE = { 4    : (1,1,0,0,0,0,0,0,0,0,                                                                   ##
+                                            0,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,0),                                ##
+                6    : (1,1,1,1,0,0,0,0,0,0,                                                                   ##
+                                            0,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,0),                                ##
+                8    : (1,2,1,1,1,0,0,0,0,0,                                                                   ##
+                                            0,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,0),                                ##
+                10   : (1,2,1,1,1,1,1,0,0,0,                                                                   ##
+                                            0,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,0),                                ##
+                12   : (1,2,1,1,1,1,1,1,0,1,                                                                   ##
+                                            0,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,0),                                ##
+                15   : (1,3,1,1,1,1,1,1,0,1,                                                                   ##
+                                            0,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,0),                                ##
+                17   : (1,3,1,1,1,1,1,1,1,1,                                                                   ##
+                                            0,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,0),                                ##
+                22   : (1,4,1,1,1,1,1,1,1,1,                                                                   ##
+                                            0,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,0),                                ##
+                25   : (1,4,2,1,1,1,1,1,1,1,                                                                   ##
+                                            0,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,0),                                ##
+                29   : (1,5,2,1,1,1,1,1,1,1,                                                                   ##
+                                            0,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,0),                                ##
+                None : (0,0,0,0,0,0,0,0,0,0,                                                                   ##
+                                            0,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,0)}                                ##
 #################################################################################################################
 #   Notes:                                                                                                     ##
 #################################################################################################################
@@ -70,16 +94,84 @@ GAME_MODES = {}
 AWAY = []  # cloaks of people who are away.
 SIMPLE_NOTIFY = []  # cloaks of people who !simple, who want everything /notice'd
 
-ROLE_INDICES = {0 : "seer",
-                1 : "wolf",
-                2 : "cursed villager",
-                3 : "village drunk",
-                4 : "harlot",
-                5 : "traitor",
-                6 : "gunner",
-                7 : "werecrow",
-                8 : "guardian angel",
-                9 : "detective"}
+ROLE_INDICES = {0  : "seer",
+                1  : "wolf",
+                2  : "cursed villager",
+                3  : "village drunk",
+                4  : "harlot",
+                5  : "traitor",
+                6  : "gunner",
+                7  : "werecrow",
+                8  : "guardian angel",
+                9  : "detective"
+                10 : "witch"
+                11 : "cupid"
+                12 : "thief"
+                13 : "little girl"
+                14 : "hunter"
+                15 : "ancient"
+                16 : "shaman"
+                17 : "village idiot"
+                18 : "scapegoat"
+                19 : "pied piper"
+                20 : "white wolf"
+                21 : "crow"
+                22 : "wild kid"
+                23 : "angel"
+                24 : "wolf-father"
+                25 : "big bad wolf"
+                26 : "sister"}
+
+# TODO: Code roles
+# Villager : default role, tries to survive with the restof the village
+# 0: Seer: Can scrye at night to discover the identity of a villager
+CHATTY_SEER_CHANCE = 1/2
+# 1: Wolf: Meets other wolves at night to eat a villager
+# 2: Cursed: Seen as a wolf by the seer but as an innocent by the detective
+# 3: Drunk villager: no power
+# 4: Harlot: can visit someone at night and prevent their power
+# 5: Traitor: appears as a villager, but sided with the wolves
+# 6: Gunner: has a gun, may kill the wolves at night, may lose his gun upon death
+SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
+DRUNK_SHOTS_MULTIPLIER = 3
+                    #       HIT    MISS    SUICIDE
+GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
+DRUNK_GUN_CHANCES   =   (   2/7  ,  4/7  ,   1/7   )
+MANSLAUGHTER_CHANCE =       1/5  # ACCIDENTAL HEADSHOT (FATAL)
+GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE = 0
+# 7: Werecrow: sided with the wolves, can visit a player at night to spy on him
+# 8: Guardian angel: each night, can protect one player from the wolves. May (will?) die if he protects a wolf. No effect on the little girl.
+GUARDIAN_ANGEL_DIES_CHANCE = 1/2
+# 9: Detective: can check someone's true identity during the day, may reveal himself doing so.
+DETECTIVE_REVEALED_CHANCE = 2/5
+# 10: Witch: tries to eliminate the wolves, has two potions:
+#     life potion to save the werewolves target, death potion to kill someone during the night 
+# 11: Cupid: tries to kill the wolves ; at the beginning of the game, will choose two players and "marry" them
+#        The two lovers' fate are linked: if one dies, so does the other. They know each other.
+#        Their goal is to survive together. If they are on opposite side, their goal is to win against everyone.
+# 12: Thief: will choose his role between the two that haven't been drawn.
+# 13: Little girl: villager, can spy the wolves at night
+LITTLE_GIRL_PEEK_CHANCE = 1/5
+LITTLE_GIRL_SEEN_CHANCE = 1/6 #Double if peek is successful
+# 14: Hunter: villager, revenge kills one player when he dies
+# 15: Ancient: villager, he can survive the first wolf attack. 
+#     If he is lynched or killed by the hunter or witch, every villager loses their power
+# 16: Shaman: tries to kill the wolves ; has a short time during the night to listen to the spirits 
+# 17: Village idiot: villager. If the village decides to lynch him, he will be spared at the last moment, but will lose his right to vote.
+# 18: Scapegoat: villager. In case of a tie, he will be killed by default.
+# 19: Pied piper: His goal is to win alone. He must charm every player alive, up to two each night.
+# 20: White Wolf: His goal is to win the game alone. The other werewolves think he is a normal wolf, but every other night, 
+#     he may kill one werewolf of his choice.
+# 21: Crow: villager ; each night he may curse one player which will have two votes against him the next morning.
+# 22: Wild kid: villager. At the beginning of the game, chooses a role model. If that player dies, the kid becomes a werewolf.
+# 23: Angel: his goal is to be eliminated on the first turn of the game. If he does, the game ends and he wins. 
+#     If he fails, he becomes a powerless villager
+# 24: Wolf-father: his goal is to eliminate all the innocents (non-werewolves). At night convenes with the wolves to eliminate a player
+#     Once per game, he can change the victim of the wolves into a wolf. The infected player keeps his power.
+# 25: Big Bad Wolf: his goal is to kill the innocents (non wolves), each nights he convenes with the wolves.
+#     Each night as long as no other wolf is dead, he may kill an additional victim
+# 26: Sister: villager. She knows the identity of her sister, whom she can trust.
+
 
 INDEX_OF_ROLE = dict((v,k) for k,v in ROLE_INDICES.items())
 
