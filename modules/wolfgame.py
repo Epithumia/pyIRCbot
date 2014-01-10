@@ -1341,28 +1341,30 @@ def transition_day(cli, gameid=0):
     var.NIGHT_TIMEDELTA += td
     min, sec = td.seconds // 60, td.seconds % 60
 
-    found = {}
-    for v in var.KILLS.values():
-        if v in found:
-            found[v] += 1
-        else:
-            found[v] = 1
-    
-    maxc = 0
-    victim = ""
-    dups = []
-    for v, c in found.items():
-        if c > maxc:
-            maxc = c
-            victim = v
-            dups = []
-        elif c == maxc:
-            dups.append(v)
-
-    if maxc:
-        if dups:
-            dups.append(victim)
-            victim = random.choice(dups)
+    #found = {}
+    #for v in var.KILLS.values():
+    #    if v in found:
+    #        found[v] += 1
+    #    else:
+    #        found[v] = 1
+    # 
+    #maxc = 0
+    #victim = ""
+    #dups = []
+    #for v, c in found.items():
+    #    if c > maxc:
+    #        maxc = c
+    #        victim = v
+    #        dups = []
+    #    elif c == maxc:
+    #        dups.append(v)
+    #
+    #if maxc:
+    #    if dups:
+    #        dups.append(victim)
+    #        victim = random.choice(dups)
+	
+	victim = var.VICTIM
 
     # TODO: Piper's effect
 
@@ -1388,7 +1390,6 @@ def transition_day(cli, gameid=0):
                           "all night long, and you fly back to your house.").format(target))
 
     # Deal with the guardian angel effect
-    # TODO: bodyguard will be here
     if victim in var.GUARDED.values():
         message.append(("\u0002{0}\u0002 was attacked by the wolves last night, but luckily, the "+
                         "guardian angel protected him/her.").format(victim))
@@ -2066,14 +2067,13 @@ def mass_privmsg(cli, targets, msg, notice = False):
             cli.notice(bgs, msg)
                 
                 
-
 @pmcmd("")
 def relay(cli, nick, rest):
     """Let the wolves talk to each other through the bot"""
     if var.PHASE not in ("night", "day"):
         return
 
-    badguys = var.ROLES["wolf"] + var.ROLES["traitor"] + var.ROLES["werecrow"]
+    badguys = var.ROLES["wolf"] + var.ROLES["traitor"] + var.ROLES["werecrow"] + var.ROLES["big bad wolf"] + var.ROLES["wolf father"]
     if len(badguys) > 1:
         if nick in badguys:
             badguys.remove(nick)  #  remove self from list
@@ -2093,6 +2093,38 @@ def relay(cli, nick, rest):
                 mass_privmsg(cli, [guy for guy in badguys 
                     if (guy in var.PLAYERS and
                         var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest), True)
+	
+@pmcmd("!sister")
+def sister(cli, nick, rest):
+    """Let the sisters talk to each other through the bot"""
+    sisters = var.ROLES["sister"]
+    if var.PHASE not in ("night", "day"):
+        pm(cli,nick,"You may not communicate at this time")
+        return
+
+    # Relay messages between sisters
+    if len(sisters) > 1:
+        if nick in sisters:
+            sisters.remove(nick)  #  remove self from list
+        
+            if rest.startswith("\01ACTION"):
+                rest = rest[7:-1]
+                mass_privmsg(cli, [guy for guy in sisters 
+                    if (guy in var.PLAYERS and
+                        var.PLAYERS[guy]["cloak"] not in var.SIMPLE_NOTIFY)], nick+rest)
+                mass_privmsg(cli, [guy for guy in sisters 
+                    if (guy in var.PLAYERS and
+                        var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], nick+rest, True)
+            else:
+                mass_privmsg(cli, [guy for guy in sisters 
+                    if (guy in var.PLAYERS and
+                        var.PLAYERS[guy]["cloak"] not in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest))
+                mass_privmsg(cli, [guy for guy in sisters 
+                    if (guy in var.PLAYERS and
+                        var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest), True)
+
+
+
 
 
 
@@ -2106,6 +2138,7 @@ def transition_night(cli):
     var.TIMERS = {}
 
     # Reset nighttime variables
+	var.VICTIM = ""
     var.KILLS = {}
     var.GUARDED = {}  # key = by whom, value = the person that is visited
     var.KILLER = ""  # nickname of who chose the victim
@@ -2140,7 +2173,7 @@ def transition_night(cli):
 
     # send PMs
     ps = var.list_players()
-    wolves = var.ROLES["wolf"]+var.ROLES["traitor"]+var.ROLES["werecrow"]
+    wolves = var.ROLES["wolf"]+var.ROLES["traitor"]+var.ROLES["werecrow"]+var.ROLES["big bad wolf"]+var.ROLES["wolf father"]
     for wolf in wolves:
         normal_notify = wolf in var.PLAYERS and var.PLAYERS[wolf]["cloak"] not in var.SIMPLE_NOTIFY
     
@@ -2259,7 +2292,145 @@ def transition_night(cli):
         
         pm(cli, g, gun_msg)
 
-    dmsg = (daydur_msg + "It is now nighttime. All players "+
+    dmsg = (daydur_msg + "It is now night time. All players "+
+                   "check for PMs from me for instructions. "+
+                   "If you did not receive one, simply sit back, "+
+                   "relax, and wait patiently for midnight to strike.")
+    cli.msg(chan, dmsg)
+    var.LOGGER.logMessage(dmsg.replace("\02", ""))
+    var.LOGGER.logBare("NIGHT", "BEGIN")
+
+    # cli.msg(chan, "DEBUG: "+str(var.ROLES))
+    if not var.ROLES["wolf"] + var.ROLES["werecrow"]:  # Probably something interesting going on.
+        chk_nightdone(cli)
+        chk_traitor(cli)
+
+def midnight(cli):
+    if var.PHASE == "midnight":
+        return
+    var.PHASE = "midnight"
+	
+	found = {}
+    for v in var.KILLS.values():
+        if v in found:
+            found[v] += 1
+        else:
+            found[v] = 1
+    
+    maxc = 0
+	victim = ""
+    dups = []
+    for v, c in found.items():
+        if c > maxc:
+            maxc = c
+            victim = v
+            dups = []
+        elif c == maxc:
+            dups.append(v)
+
+    if maxc:
+        if dups:
+            dups.append(victim)
+            victim = random.choice(dups)
+            var.VICTIM = victim
+
+    for x, tmr in var.TIMERS.items():  # cancel timers
+        tmr.cancel()
+    var.TIMERS = {}
+
+    # Reset midnighttime variables
+    var.CURSED = "" # Who the crow cursed
+    var.MIDNIGHT_START_TIME = datetime.now()
+
+    daydur_msg = ""
+
+    chan = botconfig.CHANNEL
+
+    if var.MIDNIGHT_TIME_LIMIT > 0:
+        var.NIGHT_ID = time.time()
+        t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.NIGHT_ID])
+        var.TIMERS["midnight"] = t
+        var.TIMERS["midnight"].daemon = True
+        t.start()
+        
+    if var.MIDNIGHT_TIME_WARN > 0:
+        t2 = threading.Timer(var.NIGHT_TIME_WARN, midnight_warn, [cli, var.NIGHT_ID])
+        var.TIMERS["midnight_warn"] = t2
+        var.TIMERS["midnight_warn"].daemon = True
+        t2.start()
+
+    # send PMs
+    ps = var.list_players()
+    
+	# Witch
+    for witch in var.ROLES["witch"]:
+        if var.FIRST_NIGHT:
+            var.RED_POT = True
+            var.BLACK_POT = True
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(witch)
+        if witch in var.PLAYERS and var.PLAYERS[witch]["cloak"] not in var.SIMPLE_NOTIFY and (var.RED_POT or var.BLACK_POT):
+            cli.msg(witch, ("You are a \u0002witch\u0002.\n"+
+                          "It is your job to determine all the wolves and traitors. "+
+                          "Your job is during the night, and you can choose to save "+
+                          "once the victim of the werewolves. Use heal <nick> to save the victim.\n"+
+                          "You may also use a killing potion to kill any player once"+
+                          "per game. Use poison <nick> to poison that player.")
+        else:
+            cli.notice(witch, "You are a \02witch\02.")  # !simple
+        if victim:
+            pl.remove(victim) #Remove the wolves' prey
+        if var.RED_POT and victim in var.PLAYERS:
+			pm(cli, witch, "Player you may heal: " + ", ".join(victim))
+        if var.BLACK_POT:
+            pm(cli, witch, "Players you may poison: " + ", ".join(pl))
+
+    # TODO: PM other roles
+    for shaman in var.ROLES["shaman"]:
+
+	
+    # Sisters
+	ps = var.list_players()
+    sisters = var.ROLES["sister"]
+    for sis in sisters:
+        normal_notify = sis in var.PLAYERS and var.PLAYERS[sis]["cloak"] not in var.SIMPLE_NOTIFY
+    
+        if normal_notify:
+            if sis in var.ROLES["sister"]:
+                pm(cli, sis, ('You are one of two \u0002sister\u0002s. You are one of the villagers. '+
+                               'You and your sister can communicate after midnight.'+
+                               'Use !sister to communicate with you sister.'))
+        else:
+            pm(cli, sis, "You are a \02{0}\02.".format(var.get_role(sister)))  # !simple
+            
+        
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(sis)  # remove self from list
+        for i, player in enumerate(pl):
+            if player in var.ROLES["sister"]:
+                pl[i] = player
+        pm(cli, sis, "\u0002Sister:\u0002 "+", ".join(pl))
+
+    # Crow
+    for crow in var.ROLES["crow"]:
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(crow)
+        if crow in var.PLAYERS and var.PLAYERS[crow]["cloak"] not in var.SIMPLE_NOTIFY:
+            cli.msg(crow, ("You are a \u0002crow\u0002.\n"+
+                          "You are part of the villagers. "+
+                          "Your job is during the night, and you can choose to curse "+
+                          "once the players. Use curse <nick> to curse the player.\n"+
+                          "That player will have two votes against him the next day.")
+        else:
+            cli.notice(crow, "You are a \02crow\02.")  # !simple
+        pm(cli, crow, "Players you may curse: " + ", ".join(pl))
+
+
+    # TODO: check we actually have midnight roles (shaman, witch, sisters, crow)
+    dmsg = (daydur_msg + "It is now midnight, the witching hour. All players "+
                    "check for PMs from me for instructions. "+
                    "If you did not receive one, simply sit back, "+
                    "relax, and wait patiently for morning.")
@@ -2271,8 +2442,6 @@ def transition_night(cli):
     if not var.ROLES["wolf"] + var.ROLES["werecrow"]:  # Probably something interesting going on.
         chk_nightdone(cli)
         chk_traitor(cli)
-
-
 
 def cgamemode(cli, *args):
     chan = botconfig.CHANNEL
