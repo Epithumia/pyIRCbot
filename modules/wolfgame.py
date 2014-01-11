@@ -878,7 +878,7 @@ def chk_win(cli):
         
     lwolves = (len(var.ROLES["wolf"])+
                len(var.ROLES["traitor"])+
-               len(var.ROLES["werecrow"]))
+               len(var.ROLES["werecrow"]+ len(var.ROLES["big bad wolf"]) + len(var.ROLES["wolf father"])))
     if var.PHASE == "day":
         lpl -= len([x for x in var.WOUNDED if x not in var.ROLES["traitor"]])
         lwolves -= len([x for x in var.WOUNDED if x in var.ROLES["traitor"]])
@@ -899,7 +899,8 @@ def chk_win(cli):
         var.LOGGER.logBare("WOLVES", "WIN")
     elif (not var.ROLES["wolf"] and
           not var.ROLES["traitor"] and
-          not var.ROLES["werecrow"]):
+          not var.ROLES["werecrow"] and 
+          not var.ROLES["big bad wolf"] and not var.ROLES["wolf father"]):
         cli.msg(chan, ("Game over! All the wolves are dead! The villagers "+
                        "chop them up, BBQ them, and have a hearty meal."))
         var.LOGGER.logMessage(("Game over! All the wolves are dead! The villagers "+
@@ -907,7 +908,7 @@ def chk_win(cli):
         village_win = True
         var.LOGGER.logBare("VILLAGERS", "WIN")
     elif (not var.ROLES["wolf"] and not 
-          var.ROLES["werecrow"] and var.ROLES["traitor"]):
+          var.ROLES["werecrow"] and not var.ROLES["big bad wolf"] and not var.ROLES["wolf father"] and var.ROLES["traitor"] ):
         for t in var.ROLES["traitor"]:
             var.LOGGER.logBare(t, "TRANSFORM")
         chk_traitor(cli)
@@ -1389,7 +1390,7 @@ def transition_day(cli, gameid=0):
     if (not len(var.SEEN)+len(var.KILLS)+len(var.OBSERVED) # neither seer nor wolf acted
             and var.FIRST_NIGHT and var.ROLES["seer"] and not botconfig.DEBUG_MODE):
         cli.msg(botconfig.CHANNEL, "\02The wolves all die of a mysterious plague.\02")
-        for x in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]:
+        for x in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]+ var.ROLES["big bad wolf"] + var.ROLES["wolf father"]:
             if not del_player(cli, x, True):
                 return
     
@@ -1432,7 +1433,7 @@ def transition_day(cli, gameid=0):
                "The villagers awake, thankful for surviving the night, "+
                "and search the village... ").format(min, sec)]
     dead = []
-    crowonly = var.ROLES["werecrow"] and not var.ROLES["wolf"]
+    crowonly = var.ROLES["werecrow"] and not var.ROLES["wolf"] and not var.ROLES["big bad wolf"] and not var.ROLES["wolf father"]
     if victim:
         var.LOGGER.logBare(victim, "WOLVESVICTIM", *[y for x,y in var.KILLS.items() if x == victim])
 
@@ -1479,7 +1480,7 @@ def transition_day(cli, gameid=0):
                 if crow in var.OBSERVED.keys():
                     wc.remove(crow)
             # don't kill off werecrows that observed
-            deadwolf = random.choice(var.ROLES["wolf"]+wc)
+            deadwolf = random.choice(var.ROLES["wolf"]+ var.ROLES["big bad wolf"] + var.ROLES["wolf father"]+wc)
             message.append(("Fortunately, the victim, \02{0}\02, had bullets, and "+
                             "\02{1}\02, a \02{2}\02, was shot dead.").format(victim, deadwolf, var.get_role(deadwolf)))
             var.LOGGER.logBare(deadwolf, "KILLEDBYGUNNER")
@@ -1495,14 +1496,14 @@ def transition_day(cli, gameid=0):
                                 "now dead.").format(hlt))
                 dead.append(hlt)
     for harlot in var.ROLES["harlot"]:
-        if var.HVISITED.get(harlot) in var.ROLES["wolf"]+var.ROLES["werecrow"]:
+        if var.HVISITED.get(harlot) in var.ROLES["wolf"]+var.ROLES["werecrow"]+ var.ROLES["big bad wolf"] + var.ROLES["wolf father"]:
             message.append(("\02{0}\02, a \02harlot\02, made the unfortunate mistake of "+
                             "visiting a wolf's house last night and is "+
                             "now dead.").format(harlot))
             dead.append(harlot)
     # Guardian angel protected a wolf/werecrow
     for gangel in var.ROLES["guardian angel"]:
-        if var.GUARDED.get(gangel) in var.ROLES["wolf"]+var.ROLES["werecrow"]:
+        if var.GUARDED.get(gangel) in var.ROLES["wolf"]+var.ROLES["werecrow"]+ var.ROLES["big bad wolf"] + var.ROLES["wolf father"]:
             if victim == gangel:
                 continue # already dead.
             r = random.random()
@@ -1542,7 +1543,7 @@ def transition_day(cli, gameid=0):
     if (var.WOLF_STEALS_GUN and victim in dead and 
         victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0):
         # victim has bullets
-        guntaker = random.choice(var.ROLES["wolf"] + var.ROLES["werecrow"] 
+        guntaker = random.choice(var.ROLES["wolf"] + var.ROLES["werecrow"] + var.ROLES["big bad wolf"] + var.ROLES["wolf father"]
                                  + var.ROLES["traitor"])  # random looter
         numbullets = var.GUNNERS[victim]
         var.WOLF_GUNNERS[guntaker] = numbullets  # transfer bullets to him/her
@@ -1566,7 +1567,7 @@ def chk_nightdone(cli):
     if (len(var.SEEN) == len(var.ROLES["seer"]) and  # Seers have seen.
         len(var.HVISITED.keys()) == len(var.ROLES["harlot"]) and  # harlots have visited.
         len(var.GUARDED.keys()) == len(var.ROLES["guardian angel"]) and  # guardians have guarded
-        len(var.ROLES["werecrow"]+var.ROLES["wolf"]) == len(var.KILLS)+len(var.OBSERVED) and
+        len(var.ROLES["werecrow"]+var.ROLES["wolf"]+ var.ROLES["big bad wolf"] + var.ROLES["wolf father"]) == len(var.KILLS)+len(var.OBSERVED) and
         var.PHASE == "night"):
         
         # check if wolves are actually agreeing
@@ -2430,6 +2431,14 @@ def transition_night(cli):
                 pm(cli, wolf, ('You are a \u0002traitor\u0002. You are exactly like a '+
                                'villager and not even a seer can see your true identity. '+
                                'Only detectives can. '))
+            elif wolf in var.ROLES["big bad wolf"]:
+                pm(cli, wolf, ('You are the \u0002Big Bad Wolf\u0002. It is your job to kill all the villagers.'+
+                               'Use "kill <nick>" to kill a villager. If all the wolves are still alive, you '+
+                               'can use "eat <nick>" to eat another villager'))
+            elif wolf in var.ROLES["wolf father"]:
+                pm(cli, wolf, ('You the \u0002Wolf-Father\u0002. It is your job to kill all the villagers.'+
+                               'Once per game, you can choose to convert the victim into a werewolf. '+
+                               'Use "kill <nick>" to kill a villager. Use "convert <nick> to turn him into a wolf. '))
             else:
                 pm(cli, wolf, ('You are a \u0002werecrow\u0002.  You are able to fly at night. '+
                                'Use "kill <nick>" to kill a a villager.  Alternatively, you can '+
@@ -2449,6 +2458,10 @@ def transition_night(cli):
                 pl[i] = player + " (wolf)"
             elif player in var.ROLES["traitor"]:
                 pl[i] = player + " (traitor)"
+            elif player in var.ROLES["big bad wolf"]:
+                pl[i] = player + " (Big Bad Wolf)"
+            elif player in var.ROLES["wolf father"]:
+                pl[i] = player + " (Wolf-Father)"
             elif player in var.ROLES["werecrow"]:
                 pl[i] = player + " (werecrow)"
         pm(cli, wolf, "\u0002Players:\u0002 "+", ".join(pl))
@@ -2569,7 +2582,7 @@ def transition_night(cli):
     var.LOGGER.logBare("NIGHT", "BEGIN")
 
     # cli.msg(chan, "DEBUG: "+str(var.ROLES))
-    if not var.ROLES["wolf"] + var.ROLES["werecrow"]:  # Probably something interesting going on.
+    if not var.ROLES["wolf"] + var.ROLES["werecrow"]+ var.ROLES["big bad wolf"] + var.ROLES["wolf father"]:  # Probably something interesting going on.
         chk_nightdone(cli)
         chk_traitor(cli)
 
@@ -2714,7 +2727,7 @@ def midnight(cli):
     var.LOGGER.logBare("MIDNIGHT", "BEGIN")
 
     # cli.msg(chan, "DEBUG: "+str(var.ROLES))
-    if not var.ROLES["wolf"] + var.ROLES["werecrow"]:  # Probably something interesting going on.
+    if not var.ROLES["wolf"] + var.ROLES["werecrow"]+ var.ROLES["big bad wolf"] + var.ROLES["wolf father"]:  # Probably something interesting going on.
         chk_nightdone(cli)
         chk_traitor(cli)
 
@@ -2833,7 +2846,7 @@ def start(cli, nick, chann_, rest):
     # Select cursed (just a villager)
     if var.ROLES["cursed villager"]:
         possiblecursed = pl[:]
-        for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] +
+        for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] + var.ROLES["big bad wolf"] + var.ROLES["wolf father"] +
                          var.ROLES["seer"] + var.ROLES["village drunk"]):
                                               # traitor can be cursed
             possiblecursed.remove(cannotbe)
@@ -2845,7 +2858,7 @@ def start(cli, nick, chann_, rest):
     if var.ROLES["gunner"]:
                    
         possible = pl[:]
-        for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] +
+        for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] + var.ROLES["big bad wolf"] + var.ROLES["wolf father"] +
                          var.ROLES["traitor"]):
             possible.remove(cannotbe)
             
