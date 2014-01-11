@@ -878,7 +878,7 @@ def chk_win(cli):
         
     lwolves = (len(var.ROLES["wolf"])+
                len(var.ROLES["traitor"])+
-               len(var.ROLES["werecrow"]+ len(var.ROLES["big bad wolf"]) + len(var.ROLES["wolf father"])))
+               len(var.ROLES["werecrow"])+ len(var.ROLES["big bad wolf"]) + len(var.ROLES["wolf father"]))
     if var.PHASE == "day":
         lpl -= len([x for x in var.WOUNDED if x not in var.ROLES["traitor"]])
         lwolves -= len([x for x in var.WOUNDED if x in var.ROLES["traitor"]])
@@ -2317,7 +2317,7 @@ def mass_privmsg(cli, targets, msg, notice = False):
 @pmcmd("")
 def relay(cli, nick, rest):
     """Let the wolves talk to each other through the bot"""
-    if var.PHASE not in ("night", "day"):
+    if var.PHASE not in ("night", "day", "midnight"):
         return
 
     badguys = var.ROLES["wolf"] + var.ROLES["traitor"] + var.ROLES["werecrow"] + var.ROLES["big bad wolf"] + var.ROLES["wolf father"]
@@ -2338,6 +2338,24 @@ def relay(cli, nick, rest):
                     if (guy in var.PLAYERS and
                         var.PLAYERS[guy]["cloak"] not in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest))
                 mass_privmsg(cli, [guy for guy in badguys 
+                    if (guy in var.PLAYERS and
+                        var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest), True)
+    
+    if nick in var.DEAD and var.PHASE == "midnight":
+        if len(var.ROLES["shaman"]):
+            if rest.startswith("\01ACTION"):
+                rest = rest[7:-1]
+                mass_privmsg(cli, [guy for guy in var.ROLES["shaman"] 
+                    if (guy in var.PLAYERS and
+                        var.PLAYERS[guy]["cloak"] not in var.SIMPLE_NOTIFY)], nick+rest)
+                mass_privmsg(cli, [guy for guy in var.ROLES["shaman"] 
+                    if (guy in var.PLAYERS and
+                        var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], nick+rest, True)
+            else:
+                mass_privmsg(cli, [guy for guy in var.ROLES["shaman"] 
+                    if (guy in var.PLAYERS and
+                        var.PLAYERS[guy]["cloak"] not in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest))
+                mass_privmsg(cli, [guy for guy in var.ROLES["shaman"] 
                     if (guy in var.PLAYERS and
                         var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest), True)
     
@@ -2680,7 +2698,7 @@ def midnight(cli):
         if shaman in var.PLAYERS and var.PLAYERS[shaman]["cloak"] not in var.SIMPLE_NOTIFY:
             cli.msg(shaman, ("You are a \u0002shaman\u0002.\n"+
                           "You are part of the villagers. "+
-                          "Your job is during the night, and you can listen to "+
+                          "You enter a trance in the middle of the night, and you can listen to "+
                           "what dead people have to say during the night."))
         else:
             cli.notice(shaman, "You are a \02shaman\02.")  # !simple
