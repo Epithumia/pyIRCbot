@@ -677,7 +677,7 @@ def fday(cli, nick, chan, rest):
 def chk_decision(cli):
     chan = botconfig.CHANNEL
     pl = var.list_players()
-    avail = len(pl) - len(var.WOUNDED)
+    avail = len(pl) - len(var.WOUNDED) + len(var.CCURSED)
     votesneeded = avail // 2 + 1
     for votee, voters in iter(var.VOTES.items()):
         if len(voters) >= votesneeded:
@@ -728,8 +728,8 @@ def show_votes(cli, nick, chan, rest):
         cli.notice(nick, msg)
 
     pl = var.list_players()
-    avail = len(pl) - len(var.WOUNDED)
-    votesneeded = avail // 2 + 1
+    avail = len(pl) - len(var.WOUNDED) 
+    votesneeded = (avail + len(var.CCURSED)) // 2 + 1
     the_message = ("{0}: \u0002{1}\u0002 players, \u0002{2}\u0002 votes "+
                    "required to lynch, \u0002{3}\u0002 players available " +
                    "to vote.").format(nick, len(pl), votesneeded, avail)
@@ -1318,6 +1318,20 @@ def begin_day(cli):
     var.LOGGER.logMessage(msg)
     var.LOGGER.logBare("DAY", "BEGIN")
 
+    # Count the curses
+    curse_count = 1
+    txtc = ""
+    for key in var.CCURSED.values():
+        txtc = "curse" + str(curse_count)
+        if key not in var.VOTES.keys():
+            var.VOTES[key] = [txtc]
+        else:
+            var.VOTES[key].append(txtc)
+        curse_count += 1
+        txtc = "curse" + str(curse_count)
+        var.VOTES[key].append(txtc)
+        curse_count += 1
+
     if var.DAY_TIME_LIMIT_WARN > 0:  # Time limit enabled
         var.DAY_ID = time.time()
         if len(var.list_players()) <= var.SHORT_DAY_PLAYERS:
@@ -1365,7 +1379,7 @@ def transition_day(cli, gameid=0):
     var.PHASE = "day"
     var.GOATED = False
     chan = botconfig.CHANNEL
-    
+
     # Reset daytime variables
     var.VOTES = {}
     var.INVESTIGATED = []
@@ -1543,7 +1557,7 @@ def transition_day(cli, gameid=0):
             mmsg = mmsg.format(numbullets, "s", victim)
         pm(cli, guntaker, mmsg)
         var.GUNNERS[victim] = 0  # just in case
-		
+        
     begin_day(cli)
 
 
@@ -2012,6 +2026,52 @@ def poison(cli, nick, rest):
     pm(cli, nick, "You are poisoning \u0002{0}\u0002 tonight. Farewell!".format(var.POISONED[nick]))
     pm(cli, var.POISONED[nick], "You feel a strange fire coursing through your veins.")
     var.LOGGER.logBare(var.POISONED[nick], "POISONED", nick)
+
+@pmcmd("curse")
+def curse(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
+        cli.notice(nick, "You're not currently playing.")
+        return
+    role = var.get_role(nick)
+    if role != 'crow':
+        pm(cli, nick, "Only a crow may use this command.")
+        return
+    if var.PHASE != "midnight":
+        pm(cli, nick, "You may only curse people at midnight.")
+        return
+    victim = re.split(" +",rest)[0].strip().lower()
+    if not victim:
+        pm(cli, nick, "Not enough parameters")
+        return
+    if var.CCURSED.get(nick):
+        pm(cli, nick, ("You are already protecting "+
+                      "\u0002{0}\u0002.").format(var.CCURSED[nick]))
+        return
+    pl = var.list_players()
+    pll = [x.lower() for x in pl]
+    matches = 0
+    for player in pll:
+        if victim == player:
+            target = player
+            break
+        if player.startswith(victim):
+            target = player
+            matches += 1
+    else:
+        if matches != 1:
+            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    victim = pl[pll.index(target)]
+    if victim == nick:
+        pm(cli, nick, "You may not guard yourself.")
+        return
+    var.CCURSED[nick] = victim
+    pm(cli, nick, "You are cursing \u0002{0}\u0002 tonight.".format(var.CCURSED[nick]))
+    pm(cli, var.CCURSED[nick], "You have strange nightmares.")
+    var.LOGGER.logBare(var.CCURSED[nick], "CCURSED", nick)
 
 
 @pmcmd("observe")
@@ -2518,8 +2578,7 @@ def midnight(cli):
         return
     var.PHASE = "midnight"
     
-    var.HEALED = {}
-    var.POISONED = {}
+
 
     found = {}
     for v in var.KILLS.values():
@@ -2549,8 +2608,10 @@ def midnight(cli):
     var.TIMERS = {}
 
     # Reset midnighttime variables
-    var.CURSED = "" # Who the crow cursed
+    var.CCURSED = {} # Who the crow cursed
     var.MIDNIGHT_START_TIME = datetime.now()
+    var.HEALED = {}
+    var.POISONED = {}
 
     daydur_msg = ""
 
