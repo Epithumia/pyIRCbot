@@ -14,6 +14,10 @@ MAX_PLAYERS = 40
 
 NIGHT_TIME_LIMIT = 120
 NIGHT_TIME_WARN = 90  # should be less than NIGHT_TIME_LIMIT
+
+MIDNIGHT_TIME_LIMIT = 60
+MIDNIGHT_TIME_WARN = 55  # should be less than MIDNIGHT_TIME_LIMIT
+
 DAY_TIME_LIMIT_WARN = 600
 DAY_TIME_LIMIT_CHANGE = 120  # seconds after DAY_TIME_LIMIT_WARN has passed
 # May only be set if the above are also set
@@ -57,11 +61,11 @@ ROLES_GUIDE = { 4    : (1,1,0,0,0,0,0,0,0,0,                                    
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
                                                                 0,0,0,0,0,0,0),                                ##
                 6    : (1,1,1,1,0,0,0,0,0,0,                                                                   ##
-                                            0,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,0),                                ##
+                                            1,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,2),                                ##
                 8    : (1,2,1,1,1,0,0,0,0,0,                                                                   ##
-                                            0,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,0),                                ##
+                                            1,0,0,0,0,0,0,0,0,0,                                               ##
+                                                                0,0,0,0,0,0,2),                                ##
                 10   : (1,2,1,1,1,1,1,0,0,0,                                                                   ##
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
                                                                 0,0,0,0,0,0,0),                                ##
@@ -103,23 +107,23 @@ ROLE_INDICES = {0  : "seer",
                 6  : "gunner",
                 7  : "werecrow",
                 8  : "guardian angel",
-                9  : "detective"
-                10 : "witch"
-                11 : "cupid"
-                12 : "thief"
-                13 : "little girl"
-                14 : "hunter"
-                15 : "ancient"
-                16 : "shaman"
-                17 : "village idiot"
-                18 : "scapegoat"
-                19 : "pied piper"
-                20 : "white wolf"
-                21 : "crow"
-                22 : "wild kid"
-                23 : "angel"
-                24 : "wolf-father"
-                25 : "big bad wolf"
+                9  : "detective",
+                10 : "witch",
+                11 : "cupid",
+                12 : "thief",
+                13 : "little girl",
+                14 : "hunter",
+                15 : "ancient",
+                16 : "shaman",
+                17 : "village idiot",
+                18 : "scapegoat",
+                19 : "pied piper",
+                20 : "white wolf",
+                21 : "crow",
+                22 : "wild kid",
+                23 : "angel",
+                24 : "wolf father",
+                25 : "big bad wolf",
                 26 : "sister"}
 
 # TODO: Code roles

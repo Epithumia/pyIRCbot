@@ -103,6 +103,32 @@ def connect_callback(cli):
         if "+" in status:
             to_be_devoiced.append(user)
         var.USERS[user] = dict(cloak=cloak,account=acc)
+    
+    @hook("whoreply", hookid=294)
+    def on_whoreply(cli, server, stuff1, channel, user, cloak, server2, nick, status, stuff):
+        acc,ident=stuff.split(' ', 1)
+        # print("server: " + server,file=sys.stdout)
+        # print("stuff1: " + stuff1,file=sys.stdout)
+        # print("channel: " + channel,file=sys.stdout)
+        # print("user: " + user,file=sys.stdout)
+        # print("cloak: " + cloak,file=sys.stdout)
+        # print("server2: " + server2,file=sys.stdout)
+        # print("nick: " + nick,file=sys.stdout)
+        # print("status: " + status,file=sys.stdout)
+        # print("acc: " + acc,file=sys.stdout)
+        # print("ident: " + ident,file=sys.stdout)
+        if nick in var.USERS: return  # Don't add someone who is already there
+        if nick == botconfig.NICK:
+            cli.nickname = nick
+            cli.ident = ident
+            cli.hostmask = cloak
+        if acc == "0":
+            acc = "*"
+        if "+" in status:
+            to_be_devoiced.append(nick)
+        var.USERS[nick] = dict(cloak=cloak,account=acc)
+        #print(var.USERS.keys(),file=sys.stdout)
+        #print(var.USERS.values(),file=sys.stdout)
         
     @hook("endofwho", hookid=294)
     def afterwho(*args):
@@ -630,12 +656,19 @@ def fnight(cli, nick, chan, rest):
         cli.notice(nick, "It is not daytime.")
     else:
         hurry_up(cli, 0, True)
+        
+@cmd("fmidnight", admin_only=True)
+def fnight(cli, nick, chan, rest):
+    if var.PHASE != "night":
+        cli.notice(nick, "It is not night time.")
+    else:
+        midnight(cli)
 
 
 @cmd("fday", admin_only=True)
 def fday(cli, nick, chan, rest):
-    if var.PHASE != "night":
-        cli.notice(nick, "It is not nighttime.")
+    if var.PHASE != "midnight":
+        cli.notice(nick, "It is not midnighttime.")
     else:
         transition_day(cli)
 
@@ -1303,6 +1336,17 @@ def night_warn(cli, gameid):
         return
         
     # Message to warn that the night is almost over
+    cli.msg(botconfig.CHANNEL, ("\02A few villagers notice it " +
+                                "is almost midnight. "))
+
+def midnight_warn(cli, gameid):
+    if gameid != var.MIDNIGHT_ID:
+        return
+    
+    if var.PHASE == "day":
+        return
+        
+    # Message to warn that the night is almost over
     cli.msg(botconfig.CHANNEL, ("\02A few villagers awake early and notice it " +
                                 "is still dark outside. " +
                                 "The night is almost over and there are " +
@@ -1310,9 +1354,10 @@ def night_warn(cli, gameid):
 
 def transition_day(cli, gameid=0):
     if gameid:
-        if gameid != var.NIGHT_ID:
+        if gameid != var.MIDNIGHT_ID:
             return
     var.NIGHT_ID = 0
+    var.MIDNIGHT_ID = 0
     
     if var.PHASE == "day":
         return
@@ -1341,30 +1386,28 @@ def transition_day(cli, gameid=0):
     var.NIGHT_TIMEDELTA += td
     min, sec = td.seconds // 60, td.seconds % 60
 
-    #found = {}
-    #for v in var.KILLS.values():
-    #    if v in found:
-    #        found[v] += 1
-    #    else:
-    #        found[v] = 1
-    # 
-    #maxc = 0
-    #victim = ""
-    #dups = []
-    #for v, c in found.items():
-    #    if c > maxc:
-    #        maxc = c
-    #        victim = v
-    #        dups = []
-    #    elif c == maxc:
-    #        dups.append(v)
-    #
-    #if maxc:
-    #    if dups:
-    #        dups.append(victim)
-    #        victim = random.choice(dups)
-	
-	victim = var.VICTIM
+    found = {}
+    for v in var.KILLS.values():
+        if v in found:
+            found[v] += 1
+        else:
+            found[v] = 1
+     
+    maxc = 0
+    victim = ""
+    dups = []
+    for v, c in found.items():
+        if c > maxc:
+            maxc = c
+            victim = v
+            dups = []
+        elif c == maxc:
+            dups.append(v)
+    
+    if maxc:
+        if dups:
+            dups.append(victim)
+            victim = random.choice(dups)
 
     # TODO: Piper's effect
 
@@ -1501,7 +1544,7 @@ def chk_nightdone(cli):
         
         var.TIMERS = {}
         if var.PHASE == "night":  # Double check
-            transition_day(cli)
+            midnight(cli)
 
 
 
@@ -2093,12 +2136,12 @@ def relay(cli, nick, rest):
                 mass_privmsg(cli, [guy for guy in badguys 
                     if (guy in var.PLAYERS and
                         var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest), True)
-	
-@pmcmd("!sister")
+    
+@pmcmd("sister")
 def sister(cli, nick, rest):
     """Let the sisters talk to each other through the bot"""
     sisters = var.ROLES["sister"]
-    if var.PHASE not in ("night", "day"):
+    if var.PHASE not in ("night", "day", "midnight"):
         pm(cli,nick,"You may not communicate at this time")
         return
 
@@ -2138,7 +2181,6 @@ def transition_night(cli):
     var.TIMERS = {}
 
     # Reset nighttime variables
-	var.VICTIM = ""
     var.KILLS = {}
     var.GUARDED = {}  # key = by whom, value = the person that is visited
     var.KILLER = ""  # nickname of who chose the victim
@@ -2160,7 +2202,7 @@ def transition_night(cli):
 
     if var.NIGHT_TIME_LIMIT > 0:
         var.NIGHT_ID = time.time()
-        t = threading.Timer(var.NIGHT_TIME_LIMIT, midnight, [cli, var.NIGHT_ID])
+        t = threading.Timer(var.NIGHT_TIME_LIMIT, midnight, [cli])
         var.TIMERS["night"] = t
         var.TIMERS["night"].daemon = True
         t.start()
@@ -2212,7 +2254,9 @@ def transition_night(cli):
         pl = ps[:]
         pl.sort(key=lambda x: x.lower())
         pl.remove(seer)  # remove self from list
-        
+        print(var.PLAYERS.keys(),file=sys.stdout)
+        print(var.PLAYERS.values(),file=sys.stdout)
+        print(var.SIMPLE_NOTIFY,file=sys.stdout)
         if seer in var.PLAYERS and var.PLAYERS[seer]["cloak"] not in var.SIMPLE_NOTIFY:
             pm(cli, seer, ('You are a \u0002seer\u0002. '+
                           'It is your job to detect the wolves, you '+
@@ -2330,8 +2374,8 @@ def midnight(cli):
     if var.PHASE == "midnight":
         return
     var.PHASE = "midnight"
-	
-	found = {}
+    
+    found = {}
     for v in var.KILLS.values():
         if v in found:
             found[v] += 1
@@ -2339,7 +2383,7 @@ def midnight(cli):
             found[v] = 1
     
     maxc = 0
-	victim = ""
+    victim = ""
     dups = []
     for v, c in found.items():
         if c > maxc:
@@ -2353,7 +2397,6 @@ def midnight(cli):
         if dups:
             dups.append(victim)
             victim = random.choice(dups)
-            var.VICTIM = victim
 
     for x, tmr in var.TIMERS.items():  # cancel timers
         tmr.cancel()
@@ -2368,14 +2411,14 @@ def midnight(cli):
     chan = botconfig.CHANNEL
 
     if var.MIDNIGHT_TIME_LIMIT > 0:
-        var.NIGHT_ID = time.time()
-        t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.NIGHT_ID])
+        var.MIDNIGHT_ID = time.time()
+        t = threading.Timer(var.MIDNIGHT_TIME_LIMIT, transition_day, [cli, var.MIDNIGHT_ID])
         var.TIMERS["midnight"] = t
         var.TIMERS["midnight"].daemon = True
         t.start()
         
     if var.MIDNIGHT_TIME_WARN > 0:
-        t2 = threading.Timer(var.NIGHT_TIME_WARN, midnight_warn, [cli, var.NIGHT_ID])
+        t2 = threading.Timer(var.MIDNIGHT_TIME_WARN, midnight_warn, [cli, var.MIDNIGHT_ID])
         var.TIMERS["midnight_warn"] = t2
         var.TIMERS["midnight_warn"].daemon = True
         t2.start()
@@ -2383,7 +2426,7 @@ def midnight(cli):
     # send PMs
     ps = var.list_players()
     
-	# Witch
+    # Witch
     for witch in var.ROLES["witch"]:
         if var.FIRST_NIGHT:
             var.RED_POT = True
@@ -2391,21 +2434,22 @@ def midnight(cli):
         pl = ps[:]
         pl.sort(key=lambda x: x.lower())
         pl.remove(witch)
-        if witch in var.PLAYERS and var.PLAYERS[witch]["cloak"] not in var.SIMPLE_NOTIFY and (var.RED_POT or var.BLACK_POT):
-            cli.msg(witch, ("You are a \u0002witch\u0002.\n"+
-                          "It is your job to help the villagers. "+
-                          "Your job is during the night, and you can choose to save "+
-                          "once the victim of the werewolves. Use heal <nick> to save the victim.\n"+
-                          "You may also use a killing potion to kill any player once"+
-                          "per game. Use poison <nick> to poison that player.")
-        else:
-            cli.notice(witch, "You are a \02witch\02.")  # !simple
-        if victim:
-            pl.remove(victim) #Remove the wolves' prey
-        if var.RED_POT and victim in var.PLAYERS:
-			pm(cli, witch, "Player you may heal: " + ", ".join(victim))
-        if var.BLACK_POT:
-            pm(cli, witch, "Players you may poison: " + ", ".join(pl))
+        if var.RED_POT or var.BLACK_POT:
+            if witch in var.PLAYERS and var.PLAYERS[witch]["cloak"] not in var.SIMPLE_NOTIFY:
+                cli.msg(witch, ("You are a \u0002witch\u0002.\n"+
+                              "It is your job to help the villagers. "+
+                              "Your job is during the night, and you can choose to save "+
+                              "once the victim of the werewolves. Use heal <nick> to save the victim.\n"+
+                              "You may also use a killing potion to kill any player once"+
+                              "per game. Use poison <nick> to poison that player."))
+            else:
+                cli.notice(witch, "You are a \02witch\02.")  # !simple
+            if victim and victim not in var.ROLES["witch"]:
+                pl.remove(victim) #Remove the wolves' prey
+            if var.RED_POT:
+                pm(cli, witch, "Player you may heal: {0}".format(victim))
+            if var.BLACK_POT:
+                pm(cli, witch, "Players you may poison: " + ", ".join(pl))
 
     # TODO: PM other roles
     for shaman in var.ROLES["shaman"]:
@@ -2416,12 +2460,12 @@ def midnight(cli):
             cli.msg(shaman, ("You are a \u0002shaman\u0002.\n"+
                           "You are part of the villagers. "+
                           "Your job is during the night, and you can listen to "+
-                          "what dead people have to say during the night.")
+                          "what dead people have to say during the night."))
         else:
             cli.notice(shaman, "You are a \02shaman\02.")  # !simple
-	
+    
     # Sisters
-	ps = var.list_players()
+    ps = var.list_players()
     sisters = var.ROLES["sister"]
     for sis in sisters:
         normal_notify = sis in var.PLAYERS and var.PLAYERS[sis]["cloak"] not in var.SIMPLE_NOTIFY
@@ -2430,18 +2474,11 @@ def midnight(cli):
             if sis in var.ROLES["sister"]:
                 pm(cli, sis, ('You are one of two \u0002sister\u0002s. You are one of the villagers. '+
                                'You and your sister can communicate after midnight.'+
-                               'Use !sister to communicate with you sister.'))
+                               'Use !sister to communicate with your sister.'))
         else:
-            pm(cli, sis, "You are a \02{0}\02.".format(var.get_role(sister)))  # !simple
-            
-        
-        pl = ps[:]
-        pl.sort(key=lambda x: x.lower())
-        pl.remove(sis)  # remove self from list
-        for i, player in enumerate(pl):
-            if player in var.ROLES["sister"]:
-                pl[i] = player
-        pm(cli, sis, "\u0002Sister:\u0002 "+", ".join(pl))
+            pm(cli, sis, "You are a \02Sister\02.")  # !simple
+
+        pm(cli, sis, "\u0002Sister:\u0002 "+", ".join(sisters))
 
     # Crow
     for crow in var.ROLES["crow"]:
@@ -2453,7 +2490,7 @@ def midnight(cli):
                           "You are part of the villagers. "+
                           "Your job is during the night, and you can choose to curse "+
                           "once the players. Use curse <nick> to curse the player.\n"+
-                          "That player will have two votes against him the next day.")
+                          "That player will have two votes against him the next day."))
         else:
             cli.notice(crow, "You are a \02crow\02.")  # !simple
         pm(cli, crow, "Players you may curse: " + ", ".join(pl))
@@ -2665,7 +2702,9 @@ def start(cli, nick, chann_, rest):
             var.LOGGER.logBare(plr, "ROLE gunner")
     
     var.LOGGER.log("***")        
-        
+    print(var.USERS.keys(),file=sys.stdout)
+    print(var.USERS.values(),file=sys.stdout)
+    print(pl,file=sys.stdout)
     var.PLAYERS = {plr:dict(var.USERS[plr]) for plr in pl if plr in var.USERS}    
 
     if not var.START_WITH_DAY:
