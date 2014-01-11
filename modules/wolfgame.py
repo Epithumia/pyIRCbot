@@ -1432,13 +1432,16 @@ def transition_day(cli, gameid=0):
             pm(cli, crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
                           "all night long, and you fly back to your house.").format(target))
 
+    # Deal with witch heal effect
+    if victim in var.HEALED.values():
+        victim = ""
+        message.append(random.choice(var.NO_VICTIMS_MESSAGES) +
+                    " All villagers, however, have survived.")
     # Deal with the guardian angel effect
-    if victim in var.GUARDED.values():
+    elif victim in var.GUARDED.values():
         message.append(("\u0002{0}\u0002 was attacked by the wolves last night, but luckily, the "+
                         "guardian angel protected him/her.").format(victim))
         victim = ""
-    # TODO: Deal with witch protect effect
-
     # No victim
     elif not victim:
         message.append(random.choice(var.NO_VICTIMS_MESSAGES) +
@@ -1496,7 +1499,25 @@ def transition_day(cli, gameid=0):
                                 "and is now dead.").format(gangel))
                 var.LOGGER.logBare(gangel, "KILLEDWHENGUARDINGWOLF")
                 dead.append(gangel)
+    
+
+    # Witch poison effect
+    for corpse in var.POISONED.values():
+        if corpse not in dead:
+            if corpse in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["wolf father"]+var.ROLES["big bad wolf"]:
+                message.append(("The poisoned corpse of \u0002{0}\u0002, a "+
+                        "\u0002{1}\u0002, is found. No one will mourn him/her "+
+                        "death.").format(corpse, var.get_role(corpse)))
+            else:
+                message.append(("The poisoned corpse of \u0002{0}\u0002, a "+
+                        "\u0002{1}\u0002, is found. Those remaining mourn his/her "+
+                        "death.").format(corpse, var.get_role(corpse)))
+            dead.append(corpse)
+            var.LOGGER.logBare(corpse, "POISONED")
     cli.msg(chan, "\n".join(message))
+
+
+
     for msg in message:
         var.LOGGER.logMessage(msg.replace("\02", ""))
     for deadperson in dead:
@@ -1522,8 +1543,7 @@ def transition_day(cli, gameid=0):
             mmsg = mmsg.format(numbullets, "s", victim)
         pm(cli, guntaker, mmsg)
         var.GUNNERS[victim] = 0  # just in case
-
-            
+		
     begin_day(cli)
 
 
@@ -1545,7 +1565,6 @@ def chk_nightdone(cli):
         var.TIMERS = {}
         if var.PHASE == "night":  # Double check
             midnight(cli)
-
 
 
 @cmd("lynch", "vote")
@@ -1821,7 +1840,6 @@ def kill(cli, nick, rest):
     var.LOGGER.logBare(nick, "SELECT", victim)
     chk_nightdone(cli)
 
-
 @pmcmd("guard", "protect", "save")
 def guard(cli, nick, rest):
     if var.PHASE in ("none", "join"):
@@ -1869,6 +1887,131 @@ def guard(cli, nick, rest):
     var.LOGGER.logBare(var.GUARDED[nick], "GUARDED", nick)
     chk_nightdone(cli)
 
+@pmcmd("heal")
+def heal(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
+        cli.notice(nick, "You're not currently playing.")
+        return
+    role = var.get_role(nick)
+    if role != 'witch':
+        pm(cli, nick, "Only a witch may use this command.")
+        return
+    if var.PHASE != "midnight":
+        pm(cli, nick, "You may only heal people when it is midnight.")
+        return
+    if not var.RED_POT:
+        pm(cli, nick, "You may only heal people once per game, and there is no undoing it.")
+        return
+    victim = re.split(" +",rest)[0].strip().lower()
+    if not victim:
+        pm(cli, nick, "Not enough parameters")
+        return
+    if var.HEALED.get(nick):
+        pm(cli, nick, ("You are already healing "+
+                      "\u0002{0}\u0002.").format(var.HEALED[nick]))
+        return
+    pl = var.list_players()
+    pll = [x.lower() for x in pl]
+    matches = 0
+    for player in pll:
+        if victim == player:
+            target = player
+            break
+        if player.startswith(victim):
+            target = player
+            matches += 1
+    else:
+        if matches != 1:
+            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    victim = pl[pll.index(target)]
+    found = {}
+    for v in var.KILLS.values():
+        if v in found:
+            found[v] += 1
+        else:
+            found[v] = 1
+    
+    maxc = 0
+    prey = ""
+    dups = []
+    for v, c in found.items():
+        if c > maxc:
+            maxc = c
+            prey = v
+            dups = []
+        elif c == maxc:
+            dups.append(v)
+
+    if maxc:
+        if dups:
+            dups.append(prey)
+            prey = random.choice(dups)
+    if victim != prey:
+        pm(cli, nick, "You may only heal the wolves' victim.")
+        return
+    if victim == nick:
+        var.HEALED[nick] = victim
+        pm(cli, nick, "You healed yourself.")
+    else:
+        var.HEALED[nick] = victim
+        pm(cli, nick, "You are healing \u0002{0}\u0002 tonight.".format(var.HEALED[nick]))
+    var.RED_POT = False # Healing potion used
+    var.LOGGER.logBare(var.HEALED[nick], "HEALED", nick)
+
+
+@pmcmd("poison")
+def poison(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
+        cli.notice(nick, "You're not currently playing.")
+        return
+    role = var.get_role(nick)
+    if role != 'witch':
+        pm(cli, nick, "Only a witch may use this command.")
+        return
+    if var.PHASE != "midnight":
+        pm(cli, nick, "You may only poison people when it is midnight.")
+        return
+    if not var.BLACK_POT:
+        pm(cli, nick, "You may only poison people once per game, and there is no undoing it.")
+        return
+    victim = re.split(" +",rest)[0].strip().lower()
+    if not victim:
+        pm(cli, nick, "Not enough parameters")
+        return
+    if var.POISONED.get(nick):
+        pm(cli, nick, ("You are already healing "+
+                      "\u0002{0}\u0002.").format(var.POISONED[nick]))
+        return
+    pl = var.list_players()
+    pll = [x.lower() for x in pl]
+    matches = 0
+    for player in pll:
+        if victim == player:
+            target = player
+            break
+        if player.startswith(victim):
+            target = player
+            matches += 1
+    else:
+        if matches != 1:
+            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    victim = pl[pll.index(target)]
+    if victim == nick:
+        pm(cli, nick, "You may not poison yourself.")
+        return
+    var.POISONED[nick] = victim
+    var.BLACK_POT = False # Used the killing potion
+    pm(cli, nick, "You are poisoning \u0002{0}\u0002 tonight. Farewell!".format(var.POISONED[nick]))
+    pm(cli, var.POISONED[nick], "You feel a strange fire coursing through your veins.")
+    var.LOGGER.logBare(var.POISONED[nick], "POISONED", nick)
 
 
 @pmcmd("observe")
@@ -2137,8 +2280,8 @@ def relay(cli, nick, rest):
                     if (guy in var.PLAYERS and
                         var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest), True)
     
-@pmcmd("sister")
-def sister(cli, nick, rest):
+@pmcmd("sischat")
+def sischat(cli, nick, rest):
     """Let the sisters talk to each other through the bot"""
     sisters = var.ROLES["sister"]
     if var.PHASE not in ("night", "day", "midnight"):
@@ -2254,9 +2397,9 @@ def transition_night(cli):
         pl = ps[:]
         pl.sort(key=lambda x: x.lower())
         pl.remove(seer)  # remove self from list
-        print(var.PLAYERS.keys(),file=sys.stdout)
-        print(var.PLAYERS.values(),file=sys.stdout)
-        print(var.SIMPLE_NOTIFY,file=sys.stdout)
+        #print(var.PLAYERS.keys(),file=sys.stdout)
+        #print(var.PLAYERS.values(),file=sys.stdout)
+        #print(var.SIMPLE_NOTIFY,file=sys.stdout)
         if seer in var.PLAYERS and var.PLAYERS[seer]["cloak"] not in var.SIMPLE_NOTIFY:
             pm(cli, seer, ('You are a \u0002seer\u0002. '+
                           'It is your job to detect the wolves, you '+
@@ -2375,6 +2518,9 @@ def midnight(cli):
         return
     var.PHASE = "midnight"
     
+    var.HEALED = {}
+    var.POISONED = {}
+
     found = {}
     for v in var.KILLS.values():
         if v in found:
@@ -2438,10 +2584,11 @@ def midnight(cli):
             if witch in var.PLAYERS and var.PLAYERS[witch]["cloak"] not in var.SIMPLE_NOTIFY:
                 cli.msg(witch, ("You are a \u0002witch\u0002.\n"+
                               "It is your job to help the villagers. "+
-                              "Your job is during the night, and you can choose to save "+
-                              "once the victim of the werewolves. Use heal <nick> to save the victim.\n"+
-                              "You may also use a killing potion to kill any player once"+
-                              "per game. Use poison <nick> to poison that player."))
+                              "During the night, you can choose to save "+
+                              "once per game the victim of the werewolves. Use heal <nick> to save the victim.\n"+
+                              "You may also use a killing potion to kill any player once "+
+                              "per game. Use poison <nick> to poison that player.\n"+
+                              "Be careful, there is no undoing when you choose to heal/poison someone."))
             else:
                 cli.notice(witch, "You are a \02witch\02.")  # !simple
             if victim and victim not in var.ROLES["witch"]:
@@ -2474,7 +2621,7 @@ def midnight(cli):
             if sis in var.ROLES["sister"]:
                 pm(cli, sis, ('You are one of two \u0002sister\u0002s. You are one of the villagers. '+
                                'You and your sister can communicate after midnight.'+
-                               'Use !sister to communicate with your sister.'))
+                               'Use !sischat to communicate with your sister.'))
         else:
             pm(cli, sis, "You are a \02Sister\02.")  # !simple
 
@@ -2702,9 +2849,9 @@ def start(cli, nick, chann_, rest):
             var.LOGGER.logBare(plr, "ROLE gunner")
     
     var.LOGGER.log("***")        
-    print(var.USERS.keys(),file=sys.stdout)
-    print(var.USERS.values(),file=sys.stdout)
-    print(pl,file=sys.stdout)
+    #print(var.USERS.keys(),file=sys.stdout)
+    #print(var.USERS.values(),file=sys.stdout)
+    #print(pl,file=sys.stdout)
     var.PLAYERS = {plr:dict(var.USERS[plr]) for plr in pl if plr in var.USERS}    
 
     if not var.START_WITH_DAY:
