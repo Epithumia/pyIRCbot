@@ -122,11 +122,11 @@ def connect_callback(cli):
             cli.nickname = nick
             cli.ident = ident
             cli.hostmask = cloak
-        if acc == "0":
-            acc = "*"
+        if ident == "0":
+            ident = "*" # acc = "*" breaks logging
         if "+" in status:
             to_be_devoiced.append(nick)
-        var.USERS[nick] = dict(cloak=cloak,account=acc)
+        var.USERS[nick] = dict(cloak=cloak,account=ident)
         #print(var.USERS.keys(),file=sys.stdout)
         #print(var.USERS.values(),file=sys.stdout)
         
@@ -685,6 +685,8 @@ def chk_decision(cli):
             cli.msg(botconfig.CHANNEL, lmsg)
             var.LOGGER.logMessage(lmsg.replace("\02", ""))
             var.LOGGER.logBare(votee, "LYNCHED")
+            if votee in var.ROLES["angel"]:
+                var.ANGEL_LYNCHED = True
             if del_player(cli, votee, True):
                 transition_night(cli)
 
@@ -829,25 +831,36 @@ def stop_game(cli, winner = ""):
         if acc == "*":
             continue  # not logged in during game start
         # determine if this player's team won
-        if plr in (var.ORIGINAL_ROLES["wolf"] + var.ORIGINAL_ROLES["traitor"] +
+        if plr in (var.ORIGINAL_ROLES["wolf"] + var.ORIGINAL_ROLES["traitor"] + var.ORIGINAL_ROLES["wolf father"] + var.ORIGINAL_ROLES["big bad wolf"] +
                    var.ORIGINAL_ROLES["werecrow"]):  # the player was wolf-aligned
             if winner == "wolves":
                 won = True
-            elif winner == "villagers":
+            elif winner == "villagers" or winner == "angel":
                 won = False
             else:
                 break  # abnormal game stop
+        elif plr in var.ORIGINAL_ROLES["angel"]:
+            if winner == "angel":
+                won = True
+            elif winner == "wolves" or (winner == "villagers" and var.FIRST_DAY):
+                won = False
+            elif winner == "villagers" and not var.FIRST_DAY: #Wins with the villagers after the first day
+                won = True
+            else:
+                break
         else:
-            if winner == "wolves":
+            if winner == "wolves" or winner == "angel":
                 won = False
             elif winner == "villagers":
                 won = True
             else:
                 break
-                
+        
+        #print("Before iwon eval",file=sys.stdout)
         iwon = won and plr in var.list_players()  # survived, team won = individual win
-                
+        #print("Before update role stats",file=sys.stdout)
         var.update_role_stats(acc, rol, won, iwon)
+        #print("Before after role stats",file=sys.stdout)
     
     reset(cli)
     
@@ -874,7 +887,17 @@ def chk_win(cli):
         
     if var.PHASE == "join":
         return False
-        
+    
+    if var.FIRST_DAY and var.ANGEL_LYNCHED: # The Angel was lynched
+        village_win = False
+        var.LOGGER.logBare("ANGEL", "WIN")
+        wolf_win = False
+        cli.msg(chan, ("Game over! The angel was lynched on the first day "+
+                       "and the heavens fire righteous fury on the village. The angel ascends to heaven, the village dies."))
+        var.LOGGER.logMessage(("Game over! The angel was lynched on the first day "+
+                               "and the heavens fire righteous fury on the village. The angel ascends to heaven, the village dies."))
+        stop_game(cli, "angel")
+        return True
         
     lwolves = (len(var.ROLES["wolf"])+
                len(var.ROLES["traitor"])+
@@ -889,6 +912,7 @@ def chk_win(cli):
         var.LOGGER.logMessage(("Game over! There are the same number of wolves as "+
                                "villagers. The wolves eat everyone, and win."))
         village_win = False
+        wolf_win = True
         var.LOGGER.logBare("WOLVES", "WIN")
     elif lwolves > lpl / 2:
         cli.msg(chan, ("Game over! There are more wolves than "+
@@ -896,6 +920,7 @@ def chk_win(cli):
         var.LOGGER.logMessage(("Game over! There are more wolves than "+
                                "villagers. The wolves eat everyone, and win."))
         village_win = False
+        wolf_win = True
         var.LOGGER.logBare("WOLVES", "WIN")
     elif (not var.ROLES["wolf"] and
           not var.ROLES["traitor"] and
@@ -906,6 +931,7 @@ def chk_win(cli):
         var.LOGGER.logMessage(("Game over! All the wolves are dead! The villagers "+
                                "chop them up, BBQ them, and have a hearty meal."))
         village_win = True
+        wolf_win = False
         var.LOGGER.logBare("VILLAGERS", "WIN")
     elif (not var.ROLES["wolf"] and not 
           var.ROLES["werecrow"] and not var.ROLES["big bad wolf"] and not var.ROLES["wolf father"] and var.ROLES["traitor"] ):
@@ -921,7 +947,12 @@ def chk_win(cli):
         return chk_win(cli)
     else:
         return False
-    stop_game(cli, "villagers" if village_win else "wolves")
+    if village_win:
+        stop_game(cli, "villagers")
+    elif wolf_win:
+        stop_game(cli, "wolves")
+    else:
+        stop_game(cli, "angel")
     return True
 
 
@@ -1310,6 +1341,9 @@ def begin_day(cli):
     var.OBSERVED = {}  # those whom werecrows have observed
     var.HVISITED = {}
     var.GUARDED = {}
+    var.DAY_COUNT += 1
+    if var.DAY_COUNT > 1:
+        var.FIRST_DAY = False
 
     # Message at the start of the day
     msg = ("The villagers must now vote for whom to lynch. "+
@@ -1453,7 +1487,7 @@ def transition_day(cli, gameid=0):
         message.append(random.choice(var.NO_VICTIMS_MESSAGES) +
                     " All villagers, however, have survived.")
     # Deal with the guardian angel effect
-    elif victim in var.GUARDED.values():
+    elif victim in var.GUARDED.values() and victim not in var.ROLES["little girl"]: # you can't guard the little girl
         message.append(("\u0002{0}\u0002 was attacked by the wolves last night, but luckily, the "+
                         "guardian angel protected him/her.").format(victim))
         victim = ""
@@ -1977,7 +2011,6 @@ def heal(cli, nick, rest):
     var.RED_POT = False # Healing potion used
     var.LOGGER.logBare(var.HEALED[nick], "HEALED", nick)
 
-
 @pmcmd("poison")
 def poison(cli, nick, rest):
     if var.PHASE in ("none", "join"):
@@ -2027,6 +2060,49 @@ def poison(cli, nick, rest):
     pm(cli, nick, "You are poisoning \u0002{0}\u0002 tonight. Farewell!".format(var.POISONED[nick]))
     pm(cli, var.POISONED[nick], "You feel a strange fire coursing through your veins.")
     var.LOGGER.logBare(var.POISONED[nick], "POISONED", nick)
+
+@pmcmd("peek")
+def peek(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
+        cli.notice(nick, "You're not currently playing.")
+        return
+    role = var.get_role(nick)
+    if role != 'little girl':
+        pm(cli, nick, "Only a little girl may use this command.")
+        return
+    if var.PHASE != "night":
+        pm(cli, nick, "You may only peek when it is night.")
+        return        
+    
+    # Check whether the little girl saw something
+    badguys = var.ROLES["wolf"] + var.ROLES["traitor"] + var.ROLES["werecrow"] + var.ROLES["big bad wolf"] + var.ROLES["wolf father"]
+    saw = False
+    if random.random() < var.LITTLE_GIRL_PEEK_CHANCE: # She saw someone
+        peeked = random.choice(badguys)
+        pm(cli,nick, "You saw something evil move in the dark. You recognized \u0002{0}\u0002... He is one on the wolves!".format(peeked))
+        var.LOGGER.logBare(peeked, "PEEKED (SUCCESS)", nick)
+        saw = True
+    else:
+        pm(cli,nick, "You couldn't see anything in the dark. However, you fear you may have made too much noise...")
+        var.LOGGER.logBare(nick, "PEEKED (FAIL)", nick)
+    
+    chanceseen = var.LITTLE_GIRL_SEEN_CHANCE
+    if saw:
+        chanceseen = var.LITTLE_GIRL_SEEN_CHANCE * 2 
+    if var.PEEKED: # The little girl is being really irresponsible...
+        chanceseen = chanceseen * 2
+    # Check if the little girl gets caught
+    if random.random() < chanceseen:
+        if len(badguys) > 0:
+            mass_privmsg(cli, [guy for guy in badguys 
+                if (guy in var.PLAYERS and var.PLAYERS[guy]["cloak"] not in var.SIMPLE_NOTIFY)], "You see \02{0}\02, the little girl, is spying on you!".format(nick))
+            mass_privmsg(cli, [guy for guy in badguys 
+                if (guy in var.PLAYERS and var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], "You see \02{0}\02, the little girl, is spying on you!".format(nick), True)
+    
+    var.PEEKED = True
 
 @pmcmd("curse")
 def curse(cli, nick, rest):
@@ -2409,6 +2485,7 @@ def transition_night(cli):
     var.SEEN = []  # list of seers that have had visions
     var.OBSERVED = {}  # those whom werecrows have observed
     var.HVISITED = {}
+    var.PEEKED = False # Little girl has not peeked yet.
     var.NIGHT_START_TIME = datetime.now()
 
     daydur_msg = ""
@@ -2551,7 +2628,7 @@ def transition_night(cli):
             cli.msg(littlegirl, ('You are a \u0002little girl\u0002. '+
                              'You may peek once per night to try to spot a werewolf. '+
                              'If you successfully spot a wolf, you may be caught and eaten.\n'+
-                             'Use peek to try to peek at the wolves.'))
+                             'Use "peek" to try to peek at the wolves.'))
         else:
             cli.notice(littlegirl, "You are a \02little girl\02.")  # !simple
 
@@ -2560,9 +2637,9 @@ def transition_night(cli):
         pl.sort(key=lambda x: x.lower())
         pl.remove(angel)
         if angel in var.PLAYERS and var.PLAYERS[angel]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(angel, ('You are an \u0002angel\u0002. '+
-                              'Your goal is to be the first person lynched.'+
-                              'If you succeed, you win alone. Otherwise, you become a villager.'))
+            cli.msg(angel, ('You are a righteous \u0002angel\u0002. '+
+                            'If you are lynched on the first day, you prove that the village is not worth saving, and you alone will win. \n'+
+                            'If you live past the first day, you side with the villagers to help them cleanse the village.'))
         else:
             cli.notice(angel, "You are an \02angel\02.")  # !simple
 
@@ -2848,6 +2925,9 @@ def start(cli, nick, chann_, rest):
     var.CURSED = []
     var.GUNNERS = {}
     var.WOLF_GUNNERS = {}
+    var.ANGEL_LYNCHED = False
+    var.FIRST_DAY = True
+    var.DAY_COUNT = 0
 
     villager_roles = ("gunner", "cursed villager")
     for i, count in enumerate(addroles):

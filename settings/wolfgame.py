@@ -54,8 +54,8 @@ BARE_LOG_FILENAME = "barelog.log"
 
 #################################################################################################################
 # ROLE INDEX: PLAYERS SEER|WOLF|CURSED|DRUNK|HARLOT|TRAITOR|GUNNER|CROW|GUARD|DETECTIVE                        ##
-#                     WITCH|CUPID|THIEF|GIRL|HUNTER|ANCIENT|SHAMAN|IDIOT|SCAPGOAT|PIPER                        ##
-#                     WWOLF|CROW|KID|ANGEL|FATHER|BBW|SISTER                                                   ##
+#                     WITCH|CUPID|THIEF|GIRL|HUNTER|ANCIENT|SHAMAN|IDIOT|SCAPEGOAT|PIPER                       ##
+#                     WHITEWOLF|CROW|KID|ANGEL|FATHER|BBW|SISTER                                               ##
 #################################################################################################################
 ROLES_GUIDE = { 4    : (1,1,0,0,0,0,0,0,0,0,                                                                   ##
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
@@ -98,33 +98,34 @@ GAME_MODES = {}
 AWAY = []  # cloaks of people who are away.
 SIMPLE_NOTIFY = []  # cloaks of people who !simple, who want everything /notice'd
 
-ROLE_INDICES = {0  : "seer",
-                1  : "wolf",
-                2  : "cursed villager",
-                3  : "village drunk",
-                4  : "harlot",
-                5  : "traitor",
-                6  : "gunner",
-                7  : "werecrow",
-                8  : "guardian angel",
-                9  : "detective",
-                10 : "witch",
-                11 : "cupid",
-                12 : "thief",
-                13 : "little girl",
-                14 : "hunter",
-                15 : "ancient",
-                16 : "shaman",
-                17 : "village idiot",
-                18 : "scapegoat",
-                19 : "pied piper",
-                20 : "white wolf",
-                21 : "crow",
-                22 : "wild kid",
-                23 : "angel",
-                24 : "wolf father",
-                25 : "big bad wolf",
-                26 : "sister"}
+ROLE_INDICES = {0  : "seer",                 # ok
+                1  : "wolf",                 # ok
+                2  : "cursed villager",      # ok
+                3  : "village drunk",        # ok
+                4  : "harlot",               # ok
+                5  : "traitor",              # ok
+                6  : "gunner",               # ok
+                7  : "werecrow",             # ok
+                8  : "guardian angel",       # ok
+                9  : "detective",            # ok
+                10 : "witch",                # ok
+                11 : "cupid",                # TODO
+                12 : "thief",                # TODO
+                13 : "little girl",          # ok
+                14 : "hunter",               # TODO
+                15 : "ancient",              # TODO
+                16 : "shaman",               # ok
+                17 : "village idiot",        # TODO
+                18 : "scapegoat",            # TODO
+                19 : "pied piper",           # TODO
+                20 : "white wolf",           # TODO
+                21 : "crow",                 # ok
+                22 : "wild kid",             # TODO
+                23 : "angel",                # ok
+                24 : "wolf father",          # TODO
+                25 : "big bad wolf",         # TODO
+                26 : "sister"                # ok
+                }
 
 # TODO: Code roles
 # Villager : default role, tries to survive with the restof the village
@@ -327,33 +328,38 @@ with conn:
 
 def remove_away(clk):
     with conn:
+        c = conn.cursor()
         c.execute('DELETE from away where nick=?', (clk,))
 
 def add_away(clk):
     with conn:
+        c = conn.cursor()
         c.execute('INSERT into away VALUES (?)', (clk,))
 
 def remove_simple_rolemsg(clk):
     with conn:
+        c = conn.cursor()
         c.execute('DELETE from simple_role_notify where cloak=?', (clk,))
 
 def add_simple_rolemsg(clk):
     with conn:
+        c = conn.cursor()
         c.execute('INSERT into simple_role_notify VALUES (?)', (clk,))
 
 def remove_ping(clk):
     with conn:
+        c = conn.cursor()
         c.execute('DELETE from ping where cloak=?', (clk,))
 def add_ping(clk):
     with conn:
+        c = conn.cursor()
         c.execute('INSERT into ping VALUES (?)', (clk,))
 
 
 def update_role_stats(acc, role, won, iwon):
-
     with conn:
         wins, iwins, totalgames = 0, 0, 0
-
+        c = conn.cursor()
         c.execute(("SELECT teamwins, individualwins, totalgames FROM rolestats "+
                    "WHERE player=? AND role=?"), (acc, role))
         row = c.fetchone()
