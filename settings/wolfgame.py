@@ -55,41 +55,41 @@ BARE_LOG_FILENAME = "barelog.log"
 #################################################################################################################
 # ROLE INDEX: PLAYERS SEER|WOLF|CURSED|DRUNK|HARLOT|TRAITOR|GUNNER|CROW|GUARD|DETECTIVE                        ##
 #                     WITCH|CUPID|THIEF|GIRL|HUNTER|ANCIENT|SHAMAN|IDIOT|SCAPEGOAT|PIPER                       ##
-#                     WHITEWOLF|CROW|KID|ANGEL|FATHER|BBW|SISTER                                               ##
+#                     WHITEWOLF|CROW|KID|ANGEL|FATHER|BBW|SISTER|CHATTYSEER                                    ##
 #################################################################################################################
 ROLES_GUIDE = { 4    : (1,1,0,0,0,0,0,0,0,0,                                                                   ##
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,0),                                ##
+                                                                0,0,0,0,0,0,0,0),                              ##
                 6    : (1,1,1,1,0,0,0,0,0,0,                                                                   ##
                                             1,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,2),                                ##
+                                                                0,0,0,0,0,0,2,0),                              ##
                 8    : (1,2,1,1,1,0,0,0,0,0,                                                                   ##
                                             1,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,2),                                ##
+                                                                0,0,0,0,0,0,2,0),                              ##
                 10   : (1,2,1,1,1,1,1,0,0,0,                                                                   ##
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,0),                                ##
+                                                                0,0,0,0,0,0,0,0),                              ##
                 12   : (1,2,1,1,1,1,1,1,0,1,                                                                   ##
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,0),                                ##
+                                                                0,0,0,0,0,0,0,0),                              ##
                 15   : (1,3,1,1,1,1,1,1,0,1,                                                                   ##
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,0),                                ##
+                                                                0,0,0,0,0,0,0,0),                              ##
                 17   : (1,3,1,1,1,1,1,1,1,1,                                                                   ##
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,0),                                ##
+                                                                0,0,0,0,0,0,0,0),                              ##
                 22   : (1,4,1,1,1,1,1,1,1,1,                                                                   ##
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,0),                                ##
+                                                                0,0,0,0,0,0,0,0),                              ##
                 25   : (1,4,2,1,1,1,1,1,1,1,                                                                   ##
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,0),                                ##
+                                                                0,0,0,0,0,0,0,0),                              ##
                 29   : (1,5,2,1,1,1,1,1,1,1,                                                                   ##
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,0),                                ##
+                                                                0,0,0,0,0,0,0,0),                              ##
                 None : (0,0,0,0,0,0,0,0,0,0,                                                                   ##
                                             0,0,0,0,0,0,0,0,0,0,                                               ##
-                                                                0,0,0,0,0,0,0)}                                ##
+                                                                0,0,0,0,0,0,0,0)}                              ##
 #################################################################################################################
 #   Notes:                                                                                                     ##
 #################################################################################################################
@@ -125,12 +125,12 @@ ROLE_INDICES = {0  : "seer",                 # ok
                 24 : "wolf father",          # TODO
                 25 : "big bad wolf",         # TODO
                 26 : "sister"                # ok
+                27 : "chatty seer"           # TODO
                 }
 
 # TODO: Code roles
 # Villager : default role, tries to survive with the restof the village
 # 0: Seer: Can scrye at night to discover the identity of a villager
-CHATTY_SEER_CHANCE = 1/2
 # 1: Wolf: Meets other wolves at night to eat a villager
 # 2: Cursed: Seen as a wolf by the seer but as an innocent by the detective
 # 3: Drunk villager: no power
@@ -176,6 +176,7 @@ LITTLE_GIRL_SEEN_CHANCE = 1/6 #Double if peek is successful
 # 25: Big Bad Wolf: his goal is to kill the innocents (non wolves), each nights he convenes with the wolves.
 #     Each night as long as no other wolf is dead, he may kill an additional victim
 # 26: Sister: villager. She knows the identity of her sister, whom she can trust.
+# 27: chatty seer: almost as a seer, but what was seen is announced to the room
 
 
 INDEX_OF_ROLE = dict((v,k) for k,v in ROLE_INDICES.items())

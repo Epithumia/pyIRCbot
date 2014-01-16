@@ -566,6 +566,9 @@ def stats(cli, nick, chan, rest):
     if "seer" in rs:
         rs.remove("seer")
         rs.insert(1, "seer")
+    if "chatty seer" in rs:
+        rs.remove("chatty seer")
+        rs.insert(1, "chatty seer")
     if "villager" in rs:
         rs.remove("villager")
         rs.append("villager")
@@ -1220,6 +1223,9 @@ def on_nick(cli, prefix, nick):
             if prefix in var.SEEN:
                 var.SEEN.remove(prefix)
                 var.SEEN.append(nick)
+            if prefix in var.CSEEN:
+                var.CSEEN.remove(prefix)
+                var.CSEEN.append(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -1338,6 +1344,7 @@ def begin_day(cli):
     var.GUARDED = ""
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers that have had visions
+    var.CSEEN = [] # List of roles/players that have been seen by the chatty seer
     var.OBSERVED = {}  # those whom werecrows have observed
     var.HVISITED = {}
     var.GUARDED = {}
@@ -1422,7 +1429,7 @@ def transition_day(cli, gameid=0):
     var.DAY_START_TIME = datetime.now()
 
     if (not len(var.SEEN)+len(var.KILLS)+len(var.OBSERVED) # neither seer nor wolf acted
-            and var.FIRST_NIGHT and var.ROLES["seer"] and not botconfig.DEBUG_MODE):
+            and var.FIRST_NIGHT and var.ROLES["seer"] and var.ROLES["chatty seer"] and not botconfig.DEBUG_MODE):
         cli.msg(botconfig.CHANNEL, "\02The wolves all die of a mysterious plague.\02")
         for x in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]+ var.ROLES["big bad wolf"] + var.ROLES["wolf father"]:
             if not del_player(cli, x, True):
@@ -1467,6 +1474,16 @@ def transition_day(cli, gameid=0):
                "The villagers awake, thankful for surviving the night, "+
                "and search the village... ").format(min, sec)]
     dead = []
+
+    # Chatty seer runs their mouth
+    crole = ""
+    for ctarget in var.CSEEN:
+        crole = var.get_role(ctarget)
+        cli.msg(botconfig.CHANNEL,"A loud chant echoes as dawn break. You hear a " +
+                                  "revelation that a seer had a vision of a \u0002{0}\u0002 "
+                                  "during the night.".format(crole))
+
+
     crowonly = var.ROLES["werecrow"] and not var.ROLES["wolf"] and not var.ROLES["big bad wolf"] and not var.ROLES["wolf father"]
     if victim:
         var.LOGGER.logBare(victim, "WOLVESVICTIM", *[y for x,y in var.KILLS.items() if x == victim])
@@ -1598,7 +1615,7 @@ def transition_day(cli, gameid=0):
 
 def chk_nightdone(cli):
     # TODO: check that CUPID shot the lovers
-    if (len(var.SEEN) == len(var.ROLES["seer"]) and  # Seers have seen.
+    if (len(var.SEEN) == len(var.ROLES["seer"])+len(var.ROLES["chatty seer"]) and  # Seers have seen.
         len(var.HVISITED.keys()) == len(var.ROLES["harlot"]) and  # harlots have visited.
         len(var.GUARDED.keys()) == len(var.ROLES["guardian angel"]) and  # guardians have guarded
         len(var.ROLES["werecrow"]+var.ROLES["wolf"]+ var.ROLES["big bad wolf"] + var.ROLES["wolf father"]) == len(var.KILLS)+len(var.OBSERVED) and
@@ -2315,7 +2332,7 @@ def see(cli, nick, rest):
     elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
-    if not var.is_role(nick, "seer"):
+    if not var.is_role(nick, "seer") and not var.is_role(nick,"chatty seer"):
         pm(cli, nick, "Only a seer may use this command")
         return
     if var.PHASE != "night":
@@ -2353,6 +2370,8 @@ def see(cli, nick, rest):
                     "you see that \u0002{0}\u0002 is a "+
                     "\u0002{1}\u0002!").format(victim, role))
     var.SEEN.append(nick)
+    if var.is_role(nick,"chatty seer"):
+        var.CSEEN.append(victim)
     var.LOGGER.logBare(victim, "SEEN", nick)
     chk_nightdone(cli)
 
@@ -2483,6 +2502,7 @@ def transition_night(cli):
     var.GUARDED = {}  # key = by whom, value = the person that is visited
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers that have had visions
+    var.CSEEN = [] # List of roles/players that have been seen by chatty seers
     var.OBSERVED = {}  # those whom werecrows have observed
     var.HVISITED = {}
     var.PEEKED = False # Little girl has not peeked yet.
@@ -2575,6 +2595,22 @@ def transition_night(cli):
                           'Use "see <nick>" to see the role of a player.'))
         else:
             pm(cli, seer, "You are a \02seer\02.")  # !simple
+        pm(cli, seer, "Players: "+", ".join(pl))
+
+    for seer in var.ROLES["chatty seer"]:
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(seer)  # remove self from list
+        #print(var.PLAYERS.keys(),file=sys.stdout)
+        #print(var.PLAYERS.values(),file=sys.stdout)
+        #print(var.SIMPLE_NOTIFY,file=sys.stdout)
+        if seer in var.PLAYERS and var.PLAYERS[seer]["cloak"] not in var.SIMPLE_NOTIFY:
+            pm(cli, seer, ('You are a \u0002chatty seer\u0002. '+
+                          'It is your job to detect the wolves, you '+
+                          'may have a vision once per night. '+
+                          'Use "see <nick>" to see the role of a player. Unlike the seer, what you see is made public.'))
+        else:
+            pm(cli, seer, "You are a \02chatty seer\02.")  # !simple
         pm(cli, seer, "Players: "+", ".join(pl))
 
     for harlot in var.ROLES["harlot"]:
@@ -2945,7 +2981,7 @@ def start(cli, nick, chann_, rest):
     if var.ROLES["cursed villager"]:
         possiblecursed = pl[:]
         for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] + var.ROLES["big bad wolf"] + var.ROLES["wolf father"] +
-                         var.ROLES["seer"] + var.ROLES["village drunk"]):
+                         var.ROLES["seer"] + var.ROLES["chatty seer"]+ var.ROLES["village drunk"]):
                                               # traitor can be cursed
             possiblecursed.remove(cannotbe)
         
