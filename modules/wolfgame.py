@@ -684,14 +684,18 @@ def chk_decision(cli):
     votesneeded = avail // 2 + 1
     for votee, voters in iter(var.VOTES.items()):
         if len(voters) >= votesneeded:
-            lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_role(votee))
-            cli.msg(botconfig.CHANNEL, lmsg)
-            var.LOGGER.logMessage(lmsg.replace("\02", ""))
-            var.LOGGER.logBare(votee, "LYNCHED")
-            if votee in var.ROLES["angel"]:
-                var.ANGEL_LYNCHED = True
-            if del_player(cli, votee, True):
+            if votee in var.KNOWN_IDIOT:
+                lmsg="You discover you were about to lynch the village idiot. That fool {0} almost got killed! You decide to let him go.".format(votee)
                 transition_night(cli)
+            else:
+                lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_role(votee))
+                cli.msg(botconfig.CHANNEL, lmsg)
+                var.LOGGER.logMessage(lmsg.replace("\02", ""))
+                var.LOGGER.logBare(votee, "LYNCHED")
+                if votee in var.ROLES["angel"]:
+                    var.ANGEL_LYNCHED = True
+                if del_player(cli, votee, True):
+                    transition_night(cli)
 
 
 
@@ -1652,6 +1656,9 @@ def vote(cli, nick, chann_, rest):
         cli.msg(chan, ("{0}: You are wounded and resting, "+
                       "thus you are unable to vote for the day.").format(nick))
         return
+    if nick in var.KNOWN_IDIOT:
+        cli.msg(chan, ("{0}: You are known as the village idiot, "+
+                      "thus you are unable to vote for the rest of the game.").format(nick))
 
     pl = var.list_players()
     pl_l = [x.strip().lower() for x in pl]
@@ -2682,6 +2689,12 @@ def transition_night(cli):
     for d in var.ROLES["village drunk"]:
         if var.FIRST_NIGHT:
             pm(cli, d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
+
+    for d in var.ROLES["village idiot"]:
+        if var.FIRST_NIGHT:
+            pm(cli, d, 'You are one chocolate short of a full box... You are the \u0002village idiot\u0002. \n' +
+                        'If the village lynches you, you are revealed as the village idiot and saved. However, '+
+                        'you will not be able to vote anymore. After all, who would believe the village idiot?' )
 
     for g in tuple(var.GUNNERS.keys()):
         if g not in ps:

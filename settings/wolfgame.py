@@ -115,7 +115,7 @@ ROLE_INDICES = {0  : "seer",                 # ok
                 14 : "hunter",               # TODO
                 15 : "ancient",              # TODO
                 16 : "shaman",               # ok
-                17 : "village idiot",        # TODO
+                17 : "village idiot",        # ok
                 18 : "scapegoat",            # TODO
                 19 : "pied piper",           # TODO
                 20 : "white wolf",           # TODO
@@ -125,7 +125,7 @@ ROLE_INDICES = {0  : "seer",                 # ok
                 24 : "wolf father",          # TODO
                 25 : "big bad wolf",         # TODO
                 26 : "sister"                # ok
-                27 : "chatty seer"           # TODO
+                27 : "chatty seer"           # ok
                 }
 
 # TODO: Code roles
