@@ -124,7 +124,7 @@ ROLE_INDICES = {0  : "seer",                 # ok
                 23 : "angel",                # ok
                 24 : "wolf father",          # TODO
                 25 : "big bad wolf",         # ok
-                26 : "sister"                # ok
+                26 : "sister",               # ok
                 27 : "chatty seer"           # ok
                 }
 

@@ -1480,7 +1480,7 @@ def transition_day(cli, gameid=0):
             victim = random.choice(dups)
 
     bbwvictim = ""
-    for bbwv in var.BBWKILLS:
+    for bbwv in var.BBWKILLS.values():
         bbwvictim = bbwv
 
     # TODO: Piper's effect
@@ -1666,12 +1666,12 @@ def transition_day(cli, gameid=0):
 def chk_nightdone(cli):
     # TODO: check that CUPID shot the lovers
     bbwl = 0
-    if var.BBWNIGHT:
+    if var.BBWNIGHT and var.ROLES["big bad wolf"]:
         bbwl = 1
     if (len(var.SEEN) == len(var.ROLES["seer"])+len(var.ROLES["chatty seer"]) and  # Seers have seen.
         len(var.HVISITED.keys()) == len(var.ROLES["harlot"]) and  # harlots have visited.
         len(var.GUARDED.keys()) == len(var.ROLES["guardian angel"]) and  # guardians have guarded
-        len(var.ROLES["werecrow"]+var.ROLES["wolf"]+ var.ROLES["big bad wolf"] + var.ROLES["wolf father"]) == len(var.KILLS)+len(var.OBSERVED)+bbwl and
+        len(var.ROLES["werecrow"]+var.ROLES["wolf"]+ var.ROLES["big bad wolf"] + var.ROLES["wolf father"])+bbwl == len(var.KILLS)+len(var.OBSERVED)+len(var.BBWKILLS) and
         var.PHASE == "night"):
         
         # check if wolves are actually agreeing
@@ -1954,7 +1954,7 @@ def kill(cli, nick, rest):
     if victim == nick:
         pm(cli, nick, "Suicide is bad.  Don't do it.")
         return
-    if victim in var.ROLES["wolf"]+var.ROLES["werecrow"]++var.ROLES["big bad wolf"]:
+    if victim in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["big bad wolf"]:
         pm(cli, nick, "You may only kill villagers, not other wolves.")
         return
     var.KILLS[nick] = victim
@@ -1963,7 +1963,7 @@ def kill(cli, nick, rest):
     chk_nightdone(cli)
 
 @pmcmd("eat")
-def kill(cli, nick, rest):
+def eat(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -1973,7 +1973,7 @@ def kill(cli, nick, rest):
     role = var.get_role(nick)
     if role == "traitor":
         return  # they do this a lot.
-    if role not in ('big bad wolf'):
+    if role != "big bad wolf":
         pm(cli, nick, "Only the Big Bad Wolf may use this command.")
         return
     if var.PHASE != "night":
@@ -1982,8 +1982,8 @@ def kill(cli, nick, rest):
     if not var.BBWNIGHT:
         pm(cli, nick, "You may only eat people if all other wolves are alive.")
         return
-    victim = re.split(" +",rest)[0].strip().lower()
-    if not victim:
+    bbwvictim = re.split(" +",rest)[0].strip().lower()
+    if not bbwvictim:
         pm(cli, nick, "Not enough parameters")
         return
     
@@ -1992,27 +1992,27 @@ def kill(cli, nick, rest):
     
     matches = 0
     for player in pll:
-        if victim == player:
+        if bbwvictim == player:
             target = player
             break
-        if player.startswith(victim):
+        if player.startswith(bbwvictim):
             target = player
             matches += 1
     else:
         if matches != 1:
-            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(bbwvictim))
             return
     
-    victim = pl[pll.index(target)]
-    if victim == nick:
+    bbwvictim = pl[pll.index(target)]
+    if bbwvictim == nick:
         pm(cli, nick, "Suicide is bad.  Don't do it.")
         return
-    if victim in var.ROLES["wolf"]+var.ROLES["werecrow"]:
+    if bbwvictim in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["wolf father"]:
         pm(cli, nick, "You may only kill villagers, not other wolves.")
         return
-    var.BBWKILLS[nick] = victim
-    pm(cli, nick, "You have selected \u0002{0}\u0002 to be eaten.".format(victim))
-    var.LOGGER.logBare(nick, "BBWSELECT", victim)
+    var.BBWKILLS[nick] = bbwvictim
+    pm(cli, nick, "You have selected \u0002{0}\u0002 to be eaten.".format(bbwvictim))
+    var.LOGGER.logBare(nick, "BBWSELECT", bbwvictim)
     chk_nightdone(cli)
 
 @pmcmd("guard", "protect", "save")
@@ -2875,7 +2875,7 @@ def midnight(cli):
     var.TIMERS = {}
 
     bbwvictim = ""
-    for bbwv in var.BBWKILLS.value():
+    for bbwv in var.BBWKILLS.values():
         bbwvictim = bbwv
 
     # Reset midnighttime variables
@@ -3093,6 +3093,7 @@ def start(cli, nick, chann_, rest):
     var.CURSED = []
     var.GUNNERS = {}
     var.WOLF_GUNNERS = {}
+    var.KNOWN_IDIOT = ""
     var.ANGEL_LYNCHED = False
     var.FIRST_DAY = True
     var.DAY_COUNT = 0
